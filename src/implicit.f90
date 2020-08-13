@@ -542,6 +542,11 @@ contains
 
     print *,'NOT READY YET! SIMULATION IS STOPPED!'
     call MPI_ABORT(MPI_COMM_WORLD,code,ierror); stop
+    !!!
+    ! Avoiding an annoying warning at compilation. F.Schuch 2020-08-13T19:29:32-03:00
+    xsol = 0.0
+    !
+    !!!
 
   end subroutine nonainv_0
   
