@@ -1,3 +1,39 @@
+!################################################################################
+!This file is part of Xcompact3d.
+!
+!Xcompact3d
+!Copyright (c) 2012 Eric Lamballais and Sylvain Laizet
+!eric.lamballais@univ-poitiers.fr / sylvain.laizet@gmail.com
+!
+!    Xcompact3d is free software: you can redistribute it and/or modify
+!    it under the terms of the GNU General Public License as published by
+!    the Free Software Foundation.
+!
+!    Xcompact3d is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!    GNU General Public License for more details.
+!
+!    You should have received a copy of the GNU General Public License
+!    along with the code.  If not, see <http://www.gnu.org/licenses/>.
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+!    We kindly request that you cite Xcompact3d/Incompact3d in your
+!    publications and presentations. The following citations are suggested:
+!
+!    1-Bartholomew P., Deskos G., Frantz R.A.S., Schuch F.N., Lamballais E. &
+!    Laizet S., 2020, Xcompact3D: An open-source framework for solving
+!    turbulence problems on a Cartesian mesh, SoftwareX, vol 12, pp 100550
+!
+!    2-Laizet S. & Lamballais E., 2009, High-order compact schemes for
+!    incompressible flows: a simple and efficient method with the quasi-spectral
+!    accuracy, J. Comp. Phys.,  vol 228 (15), pp 5989-6015
+!
+!    3-Laizet S. & Li N., 2011, Incompact3d: a powerful tool to tackle turbulence
+!    problems with up to 0(10^5) computational cores, Int. J. of Numerical
+!    Methods in Fluids, vol 67 (11), pp 1735-1757
+!################################################################################
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!
 !!!        FILE: BC-Periodic-hill.f90
@@ -280,7 +316,7 @@ contains
     endif
     close(10)
 
-#ifdef DEBG 
+#ifdef DEBG
     if (nrank .eq. 0) print *,'# init_post ok'
 #endif
 
@@ -387,4 +423,3 @@ contains
   end subroutine hill_flrt
   !********************************************************************
 end module hill
-
