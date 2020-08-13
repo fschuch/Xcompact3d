@@ -2,6 +2,9 @@
 *.o
 *.mod
 *.xdmf
+*.bin
+*.info
+*.csv
 .#*
 *.jpg
 *.pdf
@@ -10,14 +13,7 @@
 *.swp
 *.dat
 *~
-sauve*
-incompact3d
 xcompact3d
-post
-data/
-out/
-stats/
-planes/
 .DS_Store
 TAGS
 lint.txt

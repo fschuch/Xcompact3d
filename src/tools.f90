@@ -246,7 +246,7 @@ contains
     logical :: fexists
     character(len=30) :: filename, filestart
     character(len=32) :: fmt2,fmt3,fmt4
-    character(len=7) :: fmt1
+    character(len=9) :: fmt1
     NAMELIST /Time/ tfield, itime
     NAMELIST /NumParam/ nx, ny, nz, istret, beta, dt, itimescheme
 

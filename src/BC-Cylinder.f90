@@ -307,9 +307,11 @@ contains
     USE var, only : uvisu
     USE var, only : ta1,tb1,tc1,td1,te1,tf1,tg1,th1,ti1,di1
     USE var, only : ta2,tb2,tc2,td2,te2,tf2,di2,ta3,tb3,tc3,td3,te3,tf3,di3
+    use visu, only : filenamedigits, ifilenameformat
 
     real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3)) :: ux1, uy1, uz1, ep1
-    character(len=30) :: filename
+    character(len=120) :: filename, num
+    integer :: code,ierror
 
     if ((ivisu.ne.0).and.(mod(itime, ioutput).eq.0)) then
     !! Write vorticity as an example of post processing
@@ -350,11 +352,19 @@ contains
     if (iibm==2) then
        di1(:,:,:) = (one - ep1(:,:,:)) * di1(:,:,:)
     endif
+    if (filenamedigits .eq. 0) then
+      ! New enumeration system, it works integrated with xcompact3d_toolbox
+      WRITE(num, ifilenameformat) itime
+    elseif (filenamedigits .eq. 1) then
+      ! Classic enumeration system, may be removed in the near future
+      WRITE(num, ifilenameformat) itime/ioutput
+    else
+       print *,'Invalid value for ilenamedigits, it should be 0 or 1'
+       call MPI_ABORT(MPI_COMM_WORLD,code,ierror); stop
+    endif
     uvisu=0.
     call fine_to_coarseV(1,di1,uvisu)
-994 format('./data/vort',I5.5)
-    write(filename, 994) itime/ioutput
-    call decomp_2d_write_one(1,uvisu,filename,2)
+    call decomp_2d_write_one(1,uvisu,'./data/3d_snapshots/vort-'//trim(num)//'.bin',2)
     endif
 
     return

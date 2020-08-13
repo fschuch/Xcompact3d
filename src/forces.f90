@@ -35,11 +35,11 @@
 !################################################################################
 
 !=======================================================================
-! This program computes the drag and lift coefficients alongo a 
-! cylinder by the control ! volume (CV) technique for 2D (pencil) 
-! decomposition. 
+! This program computes the drag and lift coefficients alongo a
+! cylinder by the control ! volume (CV) technique for 2D (pencil)
+! decomposition.
 !
-! Adpated from Leandro Pinto PhD Thesis (2012) by Gabriel Narvaez Campo 
+! Adpated from Leandro Pinto PhD Thesis (2012) by Gabriel Narvaez Campo
 ! 08-2018 Nucleo de Estudos em Transicao e Turbulencia (NETT/IPH/UFRGS)
 !
 !=======================================================================
@@ -133,11 +133,11 @@ contains
 
     integer :: fh,ierror,code,itest1
     integer :: ierror_o=0 !error to open sauve file during restart
-    character(len=30) :: filename, filestart
+    character(len=120) :: filename, filestart
     integer (kind=MPI_OFFSET_KIND) :: filesize, disp
 
-    write(filename, "('restart-forces',I7.7)") itime
-    write(filestart,"('restart-forces',I7.7)") ifirst-1
+    write(filename, "('./data/restart-forces-',I9.9,'.bin')") itime
+    write(filestart,"('./data/restart-forces-',I9.9,'.bin')") ifirst-1
 
     if (itest1==1) then !write
        if (mod(itime, icheckpoint).ne.0) then
@@ -194,7 +194,7 @@ subroutine force(ux1,uy1,ep1)
   use var, only : ux2, uy2, ta2, tb2, tc2, td2, di2
 
   implicit none
-  character(len=30) :: filename, filename2
+  character(len=120) :: filename, filename2
   integer :: nzmsize
   integer                                             :: i, iv, j, k, kk, code
   integer                                             :: nvect1,nvect2,nvect3
@@ -272,11 +272,11 @@ subroutine force(ux1,uy1,ep1)
      !        Calculation of the momentum terms
      !*****************************************************************
      !
-     !     Calculation of the momentum terms. First we integrate the 
+     !     Calculation of the momentum terms. First we integrate the
      !     time rate of momentum along the CV.
      !
-     !         Excluding the body internal cells. If the centroid 
-     !         of the cell falls inside the body the cell is 
+     !         Excluding the body internal cells. If the centroid
+     !         of the cell falls inside the body the cell is
      !         excluded.
 
      tunstxl=zero
@@ -286,9 +286,9 @@ subroutine force(ux1,uy1,ep1)
         tsumy=zero
         do j=jcvlw_lx(iv),jcvup_lx(iv)
            do i=icvlf_lx(iv),icvrt_lx(iv)
-              !     The velocity time rate has to be relative to the cell center, 
-              !     and not to the nodes, because, here, we have an integral 
-              !     relative to the volume, and, therefore, this has a sense 
+              !     The velocity time rate has to be relative to the cell center,
+              !     and not to the nodes, because, here, we have an integral
+              !     relative to the volume, and, therefore, this has a sense
               !     of a "source".
               !         fac   = (1.5*ux1(i,j,k)-2.0*ux01(i,j,k)+0.5*ux11(i,j,k))*epcv1(i,j,k)
               fac   = (onepfive*ux1(i,j,k)-two*ux01(i,j,k)+half*ux11(i,j,k))*(one-ep1(i,j,k))
@@ -312,13 +312,13 @@ subroutine force(ux1,uy1,ep1)
 !!$!*********************************************************************************
 !!$
 !!$!       (icvlf)      (icvrt)
-!!$!(jcvup) B____________C  
+!!$!(jcvup) B____________C
 !!$!        \            \
 !!$!        \     __     \
 !!$!        \    \__\    \
 !!$!        \            \
 !!$!        \       CV   \
-!!$!(jcvlw) A____________D      
+!!$!(jcvlw) A____________D
 
      tconvxl=zero
      tconvyl=zero
@@ -511,8 +511,8 @@ subroutine force(ux1,uy1,ep1)
            call system("mv " //filename //filename2)
         endif
      endif
-     
-     
+
+
 !    if ((nrank .eq. 0).and.(itime.g)) then
 !        write(filename,"('aerof',I1.1)") iv
 !        open(67,file=filename,status='unknown',form='formatted')
