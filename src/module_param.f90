@@ -271,7 +271,8 @@ module param
        itype_dbg = 6, &
        itype_mixlayer = 7, &
        itype_jet = 8, &
-       itype_tbl = 9
+       itype_tbl = 9, &
+       itype_sandbox = 10 ! F.Schuch 2020-08-13T19:44:18-03:00
 
   integer :: cont_phi,itr,itime,itest,iprocessing
   integer :: ifft,istret,iforc_entree,iturb

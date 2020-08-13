@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CHANGELOG.md by [@fschuch](https://github.com/fschuch).
 - Xdmf writer included back, making easy to visualize the binary fields in other tools, by [@fschuch](https://github.com/fschuch).
+- Sandbox flow configuration ([BC-Sandbox.f90](./src/BC-Sandbox.f90)), by [@fschuch](https://github.com/fschuch).
 
 ### Changed
 

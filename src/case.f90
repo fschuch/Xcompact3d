@@ -50,6 +50,7 @@ module case
   use jet
   use lockexch
   use tbl
+  USE sandbox
 
   use var, only : nzmsize
 
@@ -125,6 +126,17 @@ contains
 
        call init_tbl (ux1, uy1, uz1, ep1, phi1)
 
+    ELSEIF (itype.EQ.itype_sandbox) THEN
+
+       CALL init_sandbox (ux1, uy1, uz1, ep1, phi1)
+
+    ELSE
+
+       if (nrank.eq.0) then
+          print *, "ERROR: Unknown itype: ", itype
+          STOP
+       endif
+
     endif
 
     !! Setup old arrays
@@ -189,6 +201,10 @@ contains
     elseif (itype.eq.itype_tbl) then
 
        call boundary_conditions_tbl (ux, uy, uz, phi)
+
+    ELSEIF (itype.EQ.itype_sandbox) THEN
+
+       CALL boundary_conditions_sandbox (ux, uy, uz, phi)
 
     endif
 
@@ -289,6 +305,11 @@ contains
     elseif (itype.eq.itype_tbl) then
 
        call postprocess_tbl (ux, uy, uz, ep)
+
+    ELSEIF (itype.EQ.itype_sandbox) THEN
+
+       CALL postprocess_sandbox (ux, uy, uz, phi, ep)
+
 
     endif
 
