@@ -38,8 +38,13 @@ module visu
 
   implicit none
 
+  logical :: ixdmf = .True.
+  integer :: filenamedigits = 0
+  character(len=20) :: ifilenameformat = '(I9.9)'
+
   private
-  public :: visu_init, write_snapshot
+  public :: visu_init, write_snapshot, filenamedigits, ifilenameformat, &
+    write_xdmf_header, write_field, write_xdmf_footer, ixdmf
 
 contains
   !############################################################################
@@ -57,13 +62,47 @@ contains
     real(mytype) :: memout
     !
     !###################################################################
-    ! Check if planes folder exists
+    ! Check if all folders exist
     !###################################################################
     if (nrank==0) then
       inquire(file="data", exist=dir_exists)
       if (.not.dir_exists) then
          call system("mkdir data 2> /dev/null")
       end if
+      inquire(file="data/3d_snapshots", exist=dir_exists)
+      if (.not.dir_exists) then
+         call system("mkdir data/3d_snapshots 2> /dev/null")
+      end if
+      inquire(file="data/xy_planes", exist=dir_exists)
+      if (.not.dir_exists) then
+         call system("mkdir data/xy_planes 2> /dev/null")
+      end if
+      inquire(file="data/xz_planes", exist=dir_exists)
+      if (.not.dir_exists) then
+         call system("mkdir data/xz_planes 2> /dev/null")
+      end if
+      inquire(file="data/yz_planes", exist=dir_exists)
+      if (.not.dir_exists) then
+         call system("mkdir data/yz_planes 2> /dev/null")
+      end if
+      if (ixdmf) then
+        inquire(file="data/xdmf", exist=dir_exists)
+        if (.not.dir_exists) then
+           call system("mkdir data/xdmf 2> /dev/null")
+        end if
+      endif
+    end if
+    !###################################################################
+    ! Deprecisation warning
+    !###################################################################
+    if (nrank==0) then
+      if (filenamedigits .eq. 1) then
+        print *,'==========================================================='
+        print *,'Deprecisation warning:'
+        print *,'    The classic enumeration system for output may be removed'
+        print *,'    in a further release'
+        print *,'==========================================================='
+      endif
     end if
     !###################################################################
     ! Memory usage of visu module
@@ -114,10 +153,11 @@ contains
 
     use tools, only : rescale_pressure
 
+    use MPI
+
     implicit none
 
     character(len=80) :: filename
-
     !! inputs
     real(mytype), dimension(xsize(1), xsize(2), xsize(3)), intent(in) :: ux1, uy1, uz1
     real(mytype), dimension(xsize(1), xsize(2), xsize(3)), intent(in) :: ep1
@@ -126,49 +166,37 @@ contains
     real(mytype), dimension(xsize(1), xsize(2), xsize(3), numscalar), intent(in) :: phi1
     integer, intent(in) :: itime
 
-    integer :: is
     character(len=32) :: fmt2,fmt3,fmt4
+    integer :: code,ierror, is, io
+
+    character(len=30) :: num
+
     real :: tstart, tend
     !###################################################################
     if (nrank.eq.0) then
       call cpu_time(tstart)
       print *,'Writing snapshots =>',itime/ioutput
     end if
+    !
+    if (filenamedigits .eq. 0) then
+      ! New enumeration system, it works integrated with xcompact3d_toolbox
+      WRITE(num, ifilenameformat) itime
+    elseif (filenamedigits .eq. 1) then
+      ! Classic enumeration system, may be removed in the near future
+      WRITE(num, ifilenameformat) itime/ioutput
+    else
+       print *,'Invalid value for ilenamedigits, it should be 0 or 1'
+       call MPI_ABORT(MPI_COMM_WORLD,code,ierror); stop
+    endif
+    !
+    io = 67
+    call write_xdmf_header(io, num, './data/xdmf/3d_snapshots', nx, ny, nz)
     !###################################################################
     !! Write velocity
     !###################################################################
-    uvisu=0.
-    if (iibm==2) then
-      ta1(:,:,:) = (one - ep1(:,:,:)) * ux1(:,:,:)
-    else
-      ta1(:,:,:) = ux1(:,:,:)
-    endif
-    call fine_to_coarseV(1,ta1,uvisu)
-990  format('./data/ux',I5.5)
-    write(filename, 990) itime/ioutput
-    call decomp_2d_write_one(1,uvisu,filename,2)
-
-    uvisu=0.
-    if (iibm==2) then
-      ta1(:,:,:) = (one - ep1(:,:,:)) * uy1(:,:,:)
-    else
-      ta1(:,:,:) = uy1(:,:,:)
-    endif
-    call fine_to_coarseV(1,ta1,uvisu)
-991  format('./data/uy',I5.5)
-    write(filename, 991) itime/ioutput
-    call decomp_2d_write_one(1,uvisu,filename,2)
-
-    uvisu=0.
-    if (iibm==2) then
-      ta1(:,:,:) = (one - ep1(:,:,:)) * uz1(:,:,:)
-    else
-      ta1(:,:,:) = uz1(:,:,:)
-    endif
-    call fine_to_coarseV(1,ta1,uvisu)
-992  format('./data/uz',I5.5)
-    write(filename, 992) itime/ioutput
-    call decomp_2d_write_one(1,uvisu,filename,2)
+    call write_field(ux1, io, num, 'ux', nx, ny, nz, 1)
+    call write_field(uy1, io, num, 'uy', nx, ny, nz, 1)
+    call write_field(uz1, io, num, 'uz', nx, ny, nz, 1)
     !###################################################################
     !! Write pressure
     !###################################################################
@@ -184,129 +212,198 @@ contains
     call interxpv(ta1,pp1,di1,sx,cifip6,cisip6,ciwip6,cifx6,cisx6,ciwx6,&
             nxmsize,xsize(1),xsize(2),xsize(3),1)
 
-    uvisu=0._mytype
-    !if (iibm==2) then
-    !  ta1(:,:,:) = (one - ep1(:,:,:)) * ta1(:,:,:)
-    !endif
     call rescale_pressure(ta1)
 
-    call fine_to_coarseV(1,ta1,uvisu)
-993  format('./data/pp',I5.5)
-    write(filename, 993) itime/ioutput
-    call decomp_2d_write_one(1,uvisu,filename,2)
+    call write_field(ta1, io, num, 'pp', nx, ny, nz, 1)
     !###################################################################
     !! LMN - write out density
     !###################################################################
-    if (ilmn) then
-      uvisu=0.
-      call fine_to_coarsev(1,rho1(:,:,:,1),uvisu)
-995     format('./data/rho',I5.5)
-      write(filename, 995) itime/ioutput
-      call decomp_2d_write_one(1,uvisu,filename,2)
-    endif
+      if (ilmn) call write_field(rho1(:,:,:,1), io, num, 'rho', nx, ny, nz, 1)
     !###################################################################
     !! Scalars
     !###################################################################
     if (iscalar.ne.0) then
-996     format('./data/phi',i1.1,I5.5)
       do is = 1, numscalar
-        uvisu=0.
-        call fine_to_coarsev(1,phi1(:,:,:,is),uvisu)
-        write(filename, 996) is, itime/ioutput
-        call decomp_2d_write_one(1,uvisu,filename,2)
+        call write_field(phi1(:,:,:,is), io, num, 'phi'//CHAR(48+is), nx, ny, nz, 1)
       enddo
     endif
 
-    !###################################################################
-    ! Write ini-file
-    !###################################################################
-    if (nrank==0) then
-       write(filename,"('./data/snap',I7.7,'.ini')") itime/ioutput
-       !
-       write(fmt2,'("(A,I16)")')
-       write(fmt3,'("(A,F16.4)")')
-       write(fmt4,'("(A,F16.12)")')
+    call write_xdmf_footer(io)
 
-       open (844,file=filename,action='write',status='replace')
-       write(844,'(A)')'[domain]'
-       write(844,fmt2) 'nx=      ',nx
-       write(844,fmt2) 'ny=      ',ny
-       write(844,fmt2) 'nz=      ',nz
-       write(844,fmt2) 'istret=  ',istret
-       write(844,fmt4) 'beta=    ',beta
-       write(844,fmt3) 'Lx=      ',xlx
-       write(844,fmt3) 'Ly=      ',yly
-       write(844,fmt3) 'Lz=      ',zlz
-       write(844,'(A)')'[time]'
-       write(844,fmt2) 'itime=   ',itime
-       write(844,fmt3) 'dt=      ',dt
-       write(844,fmt3) 't =      ',t
-       close(844)
-       !###################################################################
-       call cpu_time(tend)
-       write(*,'(" Time for writing snapshots (s): ",F12.8)') tend-tstart
-       !###################################################################
+    if (.not. ixdmf) then
+      !###################################################################
+      ! Write ini-file
+      !###################################################################
+      write(fmt2,'("(A,I16)")')
+      write(fmt3,'("(A,F16.4)")')
+      write(fmt4,'("(A,F16.12)")')
+      if (nrank==0) then
+         write(filename,"('./data/snap',I7.7,'.ini')") itime/ioutput
+         !
+         write(fmt2,'("(A,I16)")')
+         write(fmt3,'("(A,F16.4)")')
+         write(fmt4,'("(A,F16.12)")')
+
+         open (844,file=filename,action='write',status='replace')
+         write(844,'(A)')'[domain]'
+         write(844,fmt2) 'nx=      ',nx
+         write(844,fmt2) 'ny=      ',ny
+         write(844,fmt2) 'nz=      ',nz
+         write(844,fmt2) 'istret=  ',istret
+         write(844,fmt4) 'beta=    ',beta
+         write(844,fmt3) 'Lx=      ',xlx
+         write(844,fmt3) 'Ly=      ',yly
+         write(844,fmt3) 'Lz=      ',zlz
+         write(844,'(A)')'[time]'
+         write(844,fmt2) 'itime=   ',itime
+         write(844,fmt3) 'dt=      ',dt
+         write(844,fmt3) 't =      ',t
+         close(844)
+         !###################################################################
+         call cpu_time(tend)
+         write(*,'(" Time for writing snapshots (s): ",F12.8)') tend-tstart
+         !###################################################################
     endif
+  endif
 
   end subroutine write_snapshot
   !############################################################################
-  !############################################################################
-  subroutine VISU_PRE (pp3,ta1,tb1,di1,ta2,tb2,di2,ta3,di3,nxmsize,nymsize,nzmsize,uvisu,pre1)
-
-    USE param
-    USE variables
-    USE decomp_2d
-    USE decomp_2d_io
-
-    use tools, only : mean_plane_z
+  subroutine write_xdmf_header(io, num, filename, nx, ny, nz)
+    !############################################################################
+    !!  SUBROUTINE: write_xdmf_header
+    !!      AUTHOR: Felipe N. Schuch
+    !! DESCRIPTION: Writes the header of the xdmf file, for data visualization
+    !############################################################################
+    use variables, only : nvisu, prec, yp
+    use param, only : dx,dy,dz,istret
+    USE decomp_2d, only : mytype, nrank
 
     implicit none
 
-    integer :: nxmsize,nymsize,nzmsize
+    integer, intent(in) :: io, nx, ny, nz
+    character(len=*), intent(in) :: num, filename
+    integer :: i,k
 
-    real(mytype),dimension(xszV(1),xszV(2),xszV(3)) :: uvisu
-    real(mytype),dimension(ph3%zst(1):ph3%zen(1),ph3%zst(2):ph3%zen(2),nzmsize) :: pp3
-    !Z PENCILS NXM NYM NZM-->NXM NYM NZ
-    real(mytype),dimension(ph3%zst(1):ph3%zen(1),ph3%zst(2):ph3%zen(2),zsize(3)) :: ta3,di3
-    !Y PENCILS NXM NYM NZ -->NXM NY NZ
-    real(mytype),dimension(ph3%yst(1):ph3%yen(1),nymsize,ysize(3)) :: ta2
-    real(mytype),dimension(ph3%yst(1):ph3%yen(1),ysize(2),ysize(3)) :: tb2,di2
-    !X PENCILS NXM NY NZ  -->NX NY NZ
-    real(mytype),dimension(nxmsize,xsize(2),xsize(3)) :: ta1
-    real(mytype),dimension(xsize(1),xsize(2),xsize(3)) :: tb1,di1,pre1
+    real(mytype) :: xp(nx),zp(nz)
 
-    character(len=30) filename
+    if (.not. ixdmf) return
 
-    !WORK Z-PENCILS
-    call interzpv(ta3,pp3,di3,sz,cifip6z,cisip6z,ciwip6z,cifz6,cisz6,ciwz6,&
-         (ph3%zen(1)-ph3%zst(1)+1),(ph3%zen(2)-ph3%zst(2)+1),nzmsize,zsize(3),1)
-    !WORK Y-PENCILS
-    call transpose_z_to_y(ta3,ta2,ph3) !nxm nym nz
-    call interypv(tb2,ta2,di2,sy,cifip6y,cisip6y,ciwip6y,cify6,cisy6,ciwy6,&
-         (ph3%yen(1)-ph3%yst(1)+1),nymsize,ysize(2),ysize(3),1)
-    !WORK X-PENCILS
-    call transpose_y_to_x(tb2,ta1,ph2) !nxm ny nz
-    call interxpv(tb1,ta1,di1,sx,cifip6,cisip6,ciwip6,cifx6,cisx6,ciwx6,&
-         nxmsize,xsize(1),xsize(2),xsize(3),1)
+    if (nrank.eq.0) then
+      OPEN(io,file=filename//'-'//trim(num)//'.xdmf')
 
-    pre1=tb1
+      WRITE(io,'(A22)')'<?xml version="1.0" ?>'
+      WRITE(io,*)'<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>'
+      WRITE(io,*)'<Xdmf xmlns:xi="http://www.w3.org/2001/XInclude" Version="2.0">'
+      WRITE(io,*)'<Domain>'
+      if (istret.ne.0) then
+        do i=1,nx
+          xp(i) = real(i-1,mytype)*dx
+        enddo
+        do k=1,nz
+          zp(k) = real(k-1,mytype)*dz
+        enddo
+        write(io,*)'    <Topology name="topo" TopologyType="3DRectMesh"'
+        write(io,*)'        Dimensions="',nz,ny,nx,'">'
+        write(io,*)'    </Topology>'
+        write(io,*)'    <Geometry name="geo" Type="VXVYVZ">'
+        write(io,*)'        <DataItem Dimensions="',nx,'" NumberType="Float" Precision="4" Format="XML">'
+        write(io,*)'        ',xp(:)
+        write(io,*)'        </DataItem>'
+        write(io,*)'        <DataItem Dimensions="',ny,'" NumberType="Float" Precision="4" Format="XML">'
+        write(io,*)'        ',yp(:)
+        write(io,*)'        </DataItem>'
+        write(io,*)'        <DataItem Dimensions="',nz,'" NumberType="Float" Precision="4" Format="XML">'
+        write(io,*)'        ',zp(:)
+        write(io,*)'        </DataItem>'
+        write(io,*)'    </Geometry>'
+      else
+        WRITE(io,*)'    <Topology name="topo" TopologyType="3DCoRectMesh"'
+        WRITE(io,*)'        Dimensions="',nz,ny,nx,'">'
+        WRITE(io,*)'    </Topology>'
+        WRITE(io,*)'    <Geometry name="geo" Type="ORIGIN_DXDYDZ">'
+        WRITE(io,*)'        <!-- Origin -->'
+        WRITE(io,*)'        <DataItem Format="XML" Dimensions="3">'
+        WRITE(io,*)'        0.0 0.0 0.0'
+        WRITE(io,*)'        </DataItem>'
+        WRITE(io,*)'        <!-- DxDyDz -->'
+        WRITE(io,*)'        <DataItem Format="XML" Dimensions="3">'
+        WRITE(io,*)'        ',dz,dy,dx
+        WRITE(io,*)'        </DataItem>'
+        WRITE(io,*)'    </Geometry>'
+      endif
+      WRITE(io,*)'    <Grid Name="'//trim(num)//'" GridType="Uniform">'
+      WRITE(io,*)'        <Topology Reference="/Xdmf/Domain/Topology[1]"/>'
+      WRITE(io,*)'        <Geometry Reference="/Xdmf/Domain/Geometry[1]"/>'
+    endif
+  end subroutine write_xdmf_header
+  !######################################################################################
+  subroutine write_xdmf_footer(io)
+    !############################################################################
+    !!  SUBROUTINE: write_xdmf_footer
+    !!      AUTHOR: Felipe N. Schuch
+    !! DESCRIPTION: Writes the footer of the xdmf file, for data visualization
+    !############################################################################
+    USE decomp_2d, only : nrank
 
-    if (save_pre.eq.1) then
-       uvisu=0._mytype
-       call fine_to_coarseV(1,pre1,uvisu)
-       write(filename,"('./data/pre',I4.4)") itime/ioutput
-       call decomp_2d_write_one(1,uvisu,filename,2)
+    implicit none
+
+    integer, intent(in) :: io
+
+    if (ixdmf) then
+      if (nrank.eq.0) then
+        WRITE(io,'(/)')
+        WRITE(io,*)'    </Grid>'
+        WRITE(io,*)'</Domain>'
+        WRITE(io,'(A7)')'</Xdmf>'
+        close(io)
+      endif
     endif
 
-    if (save_prem.eq.1) then
-       tb1=0._mytype
-       call mean_plane_z(pre1,xsize(1),xsize(2),xsize(3),tb1(:,:,1))
-       write(filename,"('./data/prem',I4.4)") itime/ioutput
-       call decomp_2d_write_plane(1,tb1,3,1,filename)
+  end subroutine write_xdmf_footer
+  !######################################################################################
+  subroutine write_field(f1, io, num, filename, nx, ny, nz, clean_ibm)
+    !############################################################################
+    !!  SUBROUTINE: write_field
+    !!      AUTHOR: Felipe N. Schuch
+    !! DESCRIPTION: Writes the body of the xdmf file, in addition to write the
+    !!              binary fields to disc, in a DRY (Don't repeat yourself) way
+    !############################################################################
+    use variables, only : nvisu, prec
+    use var, only : ta1, ep1
+    use var, only : zero, one
+    use var, only : uvisu
+    use param, only : iibm
+    use decomp_2d, only : mytype, xsize, nrank
+    use decomp_2d, only : fine_to_coarsev
+    use decomp_2d_io, only : decomp_2d_write_one
+
+    implicit none
+
+    real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3)) :: f1
+    integer, intent(in) :: io, nx, ny, nz, clean_ibm
+    character(len=*), intent(in) :: num, filename
+    !
+    if (ixdmf) then
+      !
+      if (nrank.eq.0) then
+        write(io,*)'        <Attribute Name="'//filename//'" Center="Node">'
+        write(io,*)'           <DataItem Format="Binary"'
+        write(io,*)'            DataType="Float" Precision="'//CHAR(48+prec)//'" Endian="little" Seek="0"'
+        write(io,*)'            Dimensions="',nz,ny,nx,'">'
+        write(io,*)'              ../3d_snapshots/'//filename//'-'//trim(num)//'.bin'
+        write(io,*)'           </DataItem>'
+        write(io,*)'        </Attribute>'
+      endif
+      !
     endif
+    uvisu = zero
+    ta1(:,:,:) = f1(:,:,:)
+    if (clean_ibm.ne.0.and.iibm.ne.0) ta1(:,:,:) = (one - ep1(:,:,:)) * ta1(:,:,:)
+    !
+    call fine_to_coarseV(1,ta1,uvisu)
+    !
+    call decomp_2d_write_one(1,uvisu,'./data/3d_snapshots/'//filename//'-'//trim(num)//'.bin')
 
-    return
-
-  end subroutine VISU_PRE
-!############################################################################
+  end subroutine write_field
+  !############################################################################
 end module visu

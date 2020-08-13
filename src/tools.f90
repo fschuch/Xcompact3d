@@ -250,8 +250,8 @@ contains
     NAMELIST /Time/ tfield, itime
     NAMELIST /NumParam/ nx, ny, nz, istret, beta, dt, itimescheme
 
-    write(filename,"('restart',I7.7)") itime
-    write(filestart,"('restart',I7.7)") ifirst-1
+    write(filename,"('./data/restart-',I9.9,'.bin')") itime
+    write(filestart,"('./data/restart-',I9.9,'.bin')") ifirst-1
 
     if (iresflg .eq. 1 ) then !Writing restart
        if (mod(itime, icheckpoint).ne.0) then
@@ -306,7 +306,7 @@ contains
        call MPI_FILE_CLOSE(fh,ierror)
        ! Write info file for restart - Kay Schäfer
        if (nrank.eq.0) then
-         write(filename,"('restart',I7.7,'.info')") itime
+         write(filename,"('./data/restart-',I9.9,'.info')") itime
          write(fmt2,'("(A,I16)")')
          write(fmt3,'("(A,F16.4)")')
          write(fmt4,'("(A,F16.12)")')
@@ -381,7 +381,7 @@ contains
        call MPI_FILE_CLOSE(fh,ierror_o)
 
        !! Read time of restart file
-       write(filename,"('restart',I7.7,'.info')") ifirst-1
+       write(filename,"('./data/restart-',I9.9,'.info')") ifirst-1
        inquire(file=filename, exist=fexists)
        if (nrank.eq.0) print *,filename
        ! file exists???
@@ -395,7 +395,7 @@ contains
          t0 = zero
          itime0 = ifirst-1
        end if
-       
+
     endif
 
     if (nrank.eq.0) then
@@ -418,7 +418,7 @@ contains
 
     if (iresflg .eq. 1 ) then !Writing restart
        if (nrank==0) then
-          write(fmt1,"(I7.7)") itime
+          write(fmt1,"(I9.9)") itime
           print *,'Restart point restart',fmt1,' saved successfully!'!itime/icheckpoint,'saved successfully!'
           ! print *,'Elapsed time (s)',real(trestart,4)
           ! print *,'Aproximated writing speed (MB/s)',real(((s3df*16.)*1e-6)/trestart,4)

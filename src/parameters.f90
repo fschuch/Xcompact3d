@@ -57,6 +57,8 @@ subroutine parameter(input_i3d)
 
   use forces, only : iforces, nvol, xld, xrd, yld, yud
 
+  use visu, only : filenamedigits, ifilenameformat, ixdmf
+
   implicit none
 
   character(len=80), intent(in) :: input_i3d
@@ -73,7 +75,8 @@ subroutine parameter(input_i3d)
        gravx, gravy, gravz, &
        icpg, icfr
   NAMELIST /NumOptions/ ifirstder, isecondder, itimescheme, nu0nu, cnu, fpi2, ipinter
-  NAMELIST /InOutParam/ irestart, icheckpoint, ioutput, nvisu, iprocessing
+  NAMELIST /InOutParam/ irestart, icheckpoint, ioutput, nvisu, iprocessing, &
+       filenamedigits, ifilenameformat, ixdmf
   NAMELIST /Statistics/ wrotation,spinup_time, nstat, initstat
   NAMELIST /ScalarParam/ sc, ri, uset, cp, &
        nclxS1, nclxSn, nclyS1, nclySn, nclzS1, nclzSn, &
@@ -124,12 +127,12 @@ subroutine parameter(input_i3d)
      allocate(xld(nvol), xrd(nvol), yld(nvol), yud(nvol))
      read(10, nml=ForceCVs); rewind(10)
   endif
-  
+
   !! Set Scalar BCs same as fluid (may be overridden) [DEFAULT]
   nclxS1 = nclx1; nclxSn = nclxn
   nclyS1 = ncly1; nclySn = nclyn
   nclzS1 = nclz1; nclzSn = nclzn
-  
+
   if (numscalar.ne.0) then
      iscalar = 1
 
@@ -335,17 +338,17 @@ subroutine parameter(input_i3d)
        stop
      endif
      !
-     if (ilesmod.ne.0) then
-       print *,'                   : DNS'
+     if (ilesmod.eq.0) then
+       print *,'                       : DNS'
      else
        if (jLES.eq.1) then
-          print *,'                   : Phys Smag'
+          print *,'                       : Phys Smag'
        else if (jLES.eq.2) then
-          print *,'                   : Phys WALE'
+          print *,'                       : Phys WALE'
        else if (jLES.eq.3) then
-          print *,'                   : Phys dyn. Smag'
+          print *,'                       : Phys dyn. Smag'
        else if (jLES.eq.4) then
-          print *,'                   : iSVV'
+          print *,'                       : iSVV'
        else
        endif
      endif

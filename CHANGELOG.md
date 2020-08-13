@@ -10,9 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - CHANGELOG.md by [@fschuch](https://github.com/fschuch).
+- Xdmf writer included back, making easy to visualize the binary fields in other tools, by [@fschuch](https://github.com/fschuch).
 
 ### Changed
 
+- Enumeration, directory structure and filename format for binary outputs by [@fschuch](https://github.com/fschuch), details in [#3](https://github.com/fschuch/Xcompact3d/issues/3).
+
 ### Removed
+
+- `subroutine VISU_PRE` ([visu.f90](./src/visu.f90)) is obsolete, since pressure is written at `subroutine write_snapshot` ([visu.f90](./src/visu.f90)), by [@fschuch](https://github.com/fschuch).
 
 ### Fixed
