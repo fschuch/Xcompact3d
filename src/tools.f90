@@ -1465,7 +1465,7 @@ subroutine tbl_tripping(tb,ta)
      call random_seed(SIZE=ii)
      call random_seed(PUT=seed0*(/ (1, i = 1, ii) /))
 
-     INQUIRE(FILE='restart.nc',exist=exist)
+     INQUIRE(FILE='./data/restart.nc',exist=exist)
      !if ((ilit==1).AND.(exist)) then
      !if (exist) then
      !print*, 'h_coeff1 and phase1 already read from restart.nc'

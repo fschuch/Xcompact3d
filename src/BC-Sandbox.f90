@@ -222,7 +222,7 @@ contains
       do is=1, numscalar
         if (uset(is) .eq. zero) cycle
         call transpose_x_to_y(phi1(:,:,:,is),phi2(:,:,:,is))
-        call deryS (ta2, phi2, di2, sy, ffypS, fsypS, fwypS, ppy, ysize(1), ysize(2), ysize(3), 1)
+        call deryS (ta2, phi2, di2, sy, ffypS, fsypS, fwypS, ppy, ysize(1), ysize(2), ysize(3), 1, iibmS)
           do k=1, ysize(3)
             do i=1, ysize(1)
               if (ta2(i,1,k) .lt. zero) then

@@ -29,7 +29,7 @@
 !    incompressible flows: a simple and efficient method with the quasi-spectral
 !    accuracy, J. Comp. Phys.,  vol 228 (15), pp 5989-6015
 !
-!    2-Laizet S. & Li N., 2011, Incompact3d: a powerful tool to tackle turbulence
+!    3-Laizet S. & Li N., 2011, Incompact3d: a powerful tool to tackle turbulence
 !    problems with up to 0(10^5) computational cores, Int. J. of Numerical
 !    Methods in Fluids, vol 67 (11), pp 1735-1757
 !################################################################################
@@ -126,30 +126,30 @@ module variables
 
 
   ABSTRACT INTERFACE
-     SUBROUTINE DERIVATIVE_X(t,u,r,s,ff,fs,fw,nx,ny,nz,npaire)
+     SUBROUTINE DERIVATIVE_X(t,u,r,s,ff,fs,fw,nx,ny,nz,npaire,lagpol)
        use decomp_2d, only : mytype
-       integer :: nx,ny,nz,npaire
+       integer :: nx,ny,nz,npaire,lagpol
        real(mytype), dimension(nx,ny,nz) :: t,u,r
        real(mytype), dimension(ny,nz):: s
        real(mytype), dimension(nx):: ff,fs,fw
      END SUBROUTINE DERIVATIVE_X
-     SUBROUTINE DERIVATIVE_Y(t,u,r,s,ff,fs,fw,pp,nx,ny,nz,npaire)
+     SUBROUTINE DERIVATIVE_Y(t,u,r,s,ff,fs,fw,pp,nx,ny,nz,npaire,lagpol)
        use decomp_2d, only : mytype
-       integer :: nx,ny,nz,npaire
+       integer :: nx,ny,nz,npaire,lagpol
        real(mytype), dimension(nx,ny,nz) :: t,u,r
        real(mytype), dimension(nx,nz):: s
        real(mytype), dimension(ny):: ff,fs,fw,pp
      END SUBROUTINE DERIVATIVE_Y
-     SUBROUTINE DERIVATIVE_YY(t,u,r,s,ff,fs,fw,nx,ny,nz,npaire)
+     SUBROUTINE DERIVATIVE_YY(t,u,r,s,ff,fs,fw,nx,ny,nz,npaire,lagpol)
        use decomp_2d, only : mytype
-       integer :: nx,ny,nz,npaire
+       integer :: nx,ny,nz,npaire,lagpol
        real(mytype), dimension(nx,ny,nz) :: t,u,r
        real(mytype), dimension(nx,nz):: s
        real(mytype), dimension(ny):: ff,fs,fw
      END SUBROUTINE DERIVATIVE_YY
-     SUBROUTINE DERIVATIVE_Z(t,u,r,s,ff,fs,fw,nx,ny,nz,npaire)
+     SUBROUTINE DERIVATIVE_Z(t,u,r,s,ff,fs,fw,nx,ny,nz,npaire,lagpol)
        use decomp_2d, only : mytype
-       integer :: nx,ny,nz,npaire
+       integer :: nx,ny,nz,npaire,lagpol
        real(mytype), dimension(nx,ny,nz) :: t,u,r
        real(mytype), dimension(nx,ny):: s
        real(mytype), dimension(nz):: ff,fs,fw
@@ -280,7 +280,7 @@ module param
   integer :: ntime ! How many (sub)timestpeps do we need to store?
   integer :: icheckpoint,irestart,idebmod,ioutput,imodulo2,idemarre,icommence,irecord
   integer :: itime0
-  integer :: iscalar,nxboite,istat,iread,iadvance_time,irotation,iibm
+  integer :: iscalar,nxboite,istat,iread,iadvance_time,irotation,iibm,iibmS
   integer :: npif,izap
   integer :: ivisu, ipost, initstat
   real(mytype) :: xlx,yly,zlz,dx,dy,dz,dx2,dy2,dz2,t,xxk1,xxk2,t0

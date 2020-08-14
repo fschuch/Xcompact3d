@@ -249,8 +249,8 @@ subroutine force(ux1,uy1,ep1)
      return
   endif
 
-  call derx (ta1,ux1,di1,sx,ffx,fsx,fwx,xsize(1),xsize(2),xsize(3),0)    ! dudx
-  call derx (tb1,uy1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1) ! dvdx
+  call derx (ta1,ux1,di1,sx,ffx,fsx,fwx,xsize(1),xsize(2),xsize(3),0,iibm)    ! dudx
+  call derx (tb1,uy1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm) ! dvdx
   call transpose_x_to_y(ta1,ta2) ! dudx
   call transpose_x_to_y(tb1,tb2) ! dvdx
 
@@ -258,8 +258,8 @@ subroutine force(ux1,uy1,ep1)
   call transpose_x_to_y(uy1,uy2)
   call transpose_x_to_y(ppi1,ppi2)
 
-  call dery (tc2,ux2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1) ! dudy
-  call dery (td2,uy2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0)    ! dvdy
+  call dery (tc2,ux2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1,iibm) ! dudy
+  call dery (td2,uy2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0,iibm)    ! dvdy
   call transpose_y_to_x(tc2,tc1) ! dudy
   call transpose_y_to_x(td2,td1) ! dvdy
 

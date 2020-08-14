@@ -173,9 +173,9 @@ contains
     ! gxy= dux/dy; gyy=duy/dy; gzy=duz/dy;
     ! gxz= dux/dz; gyz=duy/dz; gzz=duz/dz
 
-    call derx (gxx1,ux1,di1,sx,ffx,fsx,fwx,xsize(1),xsize(2),xsize(3),0)
-    call derx (gyx1,uy1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1)
-    call derx (gzx1,uz1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1)
+    call derx (gxx1,ux1,di1,sx,ffx,fsx,fwx,xsize(1),xsize(2),xsize(3),0,iibm)
+    call derx (gyx1,uy1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm)
+    call derx (gzx1,uz1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm)
 
     sxx1(:,:,:) = gxx1(:,:,:)
 
@@ -185,9 +185,9 @@ contains
     call transpose_x_to_y(uz1,uz2)
     call transpose_x_to_y(gyx1,ta2)
 
-    call dery (gxy2,ux2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1)
-    call dery (gyy2,uy2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0)
-    call dery (gzy2,uz2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1)
+    call dery (gxy2,ux2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1,iibm)
+    call dery (gyy2,uy2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0,iibm)
+    call dery (gzy2,uz2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1,iibm)
 
     sxy2(:,:,:)=half*(gxy2(:,:,:)+ta2(:,:,:))
     syy2(:,:,:)=gyy2(:,:,:)
@@ -198,9 +198,9 @@ contains
     call transpose_y_to_z(uz2,uz3)
     call transpose_y_to_z(gzy2,ta3)
 
-    call derz(gxz3,ux3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1)
-    call derz(gyz3,uy3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1)
-    call derz(gzz3,uz3,di3,sz,ffz,fsz,fwz,zsize(1),zsize(2),zsize(3),0)
+    call derz(gxz3,ux3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1,iibm)
+    call derz(gyz3,uy3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1,iibm)
+    call derz(gzz3,uz3,di3,sz,ffz,fsz,fwz,zsize(1),zsize(2),zsize(3),0,iibm)
 
     szz3(:,:,:)=gzz3(:,:,:)
     syz3(:,:,:)=half*(gyz3(:,:,:)+ta3(:,:,:))
@@ -484,9 +484,9 @@ contains
     lxz1 = uxz1f - ux1f * uz1f
     lyz1 = uyz1f - uy1f * uz1f
 
-    call derx (gxx1f, ux1f, di1, sx, ffx, fsx, fwx, xsize(1), xsize(2), xsize(3), 0)
-    call derx (gyx1f, uy1f, di1, sx, ffxp, fsxp, fwxp, xsize(1), xsize(2), xsize(3), 1)
-    call derx (gzx1f, uz1f, di1, sx, ffxp, fsxp, fwxp, xsize(1), xsize(2), xsize(3), 1)
+    call derx (gxx1f, ux1f, di1, sx, ffx, fsx, fwx, xsize(1), xsize(2), xsize(3), 0, iibm)
+    call derx (gyx1f, uy1f, di1, sx, ffxp, fsxp, fwxp, xsize(1), xsize(2), xsize(3), 1, iibm)
+    call derx (gzx1f, uz1f, di1, sx, ffxp, fsxp, fwxp, xsize(1), xsize(2), xsize(3), 1, iibm)
 
     sxx1f = gxx1f
 
@@ -496,9 +496,9 @@ contains
     call transpose_x_to_y(uz1f, uz2f)
     call transpose_x_to_y(gyx1f, ta2)
 
-    call dery (gxy2f, ux2f, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1)
-    call dery (gyy2f, uy2f, di2, sy, ffy, fsy, fwy, ppy, ysize(1), ysize(2), ysize(3), 0)
-    call dery (gzy2f, uz2f, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1)
+    call dery (gxy2f, ux2f, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1,iibm)
+    call dery (gyy2f, uy2f, di2, sy, ffy, fsy, fwy, ppy, ysize(1), ysize(2), ysize(3), 0,iibm)
+    call dery (gzy2f, uz2f, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1,iibm)
 
     sxy2f = half * (gxy2f + ta2)
     syy2f = gyy2f
@@ -509,9 +509,9 @@ contains
     call transpose_y_to_z(uz2f, uz3f)
     call transpose_y_to_z(gzy2f, ta3)
 
-    call derz(gxz3f, ux3f, di3, sz, ffzp, fszp, fwzp, zsize(1), zsize(2), zsize(3), 1)
-    call derz(gyz3f, uy3f, di3, sz, ffzp, fszp, fwzp, zsize(1), zsize(2), zsize(3), 1)
-    call derz(gzz3f, uz3f, di3, sz, ffz, fsz, fwz, zsize(1), zsize(2), zsize(3), 0)
+    call derz(gxz3f, ux3f, di3, sz, ffzp, fszp, fwzp, zsize(1), zsize(2), zsize(3), 1,iibm)
+    call derz(gyz3f, uy3f, di3, sz, ffzp, fszp, fwzp, zsize(1), zsize(2), zsize(3), 1,iibm)
+    call derz(gzz3f, uz3f, di3, sz, ffz, fsz, fwz, zsize(1), zsize(2), zsize(3), 0,iibm)
 
     szz3f = gzz3f
     syz3f = half * (gyz3f + ta3)
@@ -856,9 +856,9 @@ contains
   ! gxy= dux/dy; gyy=duy/dy; gzy=duz/dy;
   ! gxz= dux/dz; gyz=duy/dz; gzz=duz/dz
 
-  call derx (gxx1,ux1,di1,sx,ffx,fsx,fwx,xsize(1),xsize(2),xsize(3),0)
-  call derx (gyx1,uy1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1)
-  call derx (gzx1,uz1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1)
+  call derx (gxx1,ux1,di1,sx,ffx,fsx,fwx,xsize(1),xsize(2),xsize(3),0,iibm)
+  call derx (gyx1,uy1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm)
+  call derx (gzx1,uz1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm)
 
   sxx1(:,:,:) = gxx1(:,:,:)
 
@@ -868,9 +868,9 @@ contains
   call transpose_x_to_y(uz1,uz2)
   call transpose_x_to_y(gyx1,ta2)
 
-  call dery (gxy2,ux2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1)
-  call dery (gyy2,uy2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0)
-  call dery (gzy2,uz2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1)
+  call dery (gxy2,ux2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1,iibm)
+  call dery (gyy2,uy2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0,iibm)
+  call dery (gzy2,uz2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1,iibm)
 
   syy2(:,:,:)=gyy2(:,:,:)
   sxy2(:,:,:)=half*(gxy2(:,:,:)+ta2(:,:,:))
@@ -882,9 +882,9 @@ contains
   call transpose_y_to_z(uz2,uz3)
   call transpose_y_to_z(gzy2,ta3)
 
-  call derz(gxz3,ux3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1)
-  call derz(gyz3,uy3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1)
-  call derz(gzz3,uz3,di3,sz,ffz,fsz,fwz,zsize(1),zsize(2),zsize(3),0)
+  call derz(gxz3,ux3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1,iibm)
+  call derz(gyz3,uy3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1,iibm)
+  call derz(gzz3,uz3,di3,sz,ffz,fsz,fwz,zsize(1),zsize(2),zsize(3),0,iibm)
 
   szz3(:,:,:)=gzz3(:,:,:)
   syz3(:,:,:)=half*(gyz3(:,:,:)+ta3(:,:,:))
@@ -1021,11 +1021,11 @@ end subroutine wale
     sgsx2=0.;sgsy2=0.;sgsz2=0.
     sgsx3=0.;sgsy3=0.;sgsz3=0.
     !WORK X-PENCILS
-    call derx (ta1,nut1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1)
+    call derx (ta1,nut1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm)
 
-    call derxx (td1,ux1,di1,sx,sfx ,ssx ,swx ,xsize(1),xsize(2),xsize(3),0)
-    call derxx (te1,uy1,di1,sx,sfxp,ssxp,swxp,xsize(1),xsize(2),xsize(3),1)
-    call derxx (tf1,uz1,di1,sx,sfxp,ssxp,swxp,xsize(1),xsize(2),xsize(3),1)
+    call derxx (td1,ux1,di1,sx,sfx ,ssx ,swx ,xsize(1),xsize(2),xsize(3),0,iibm)
+    call derxx (te1,uy1,di1,sx,sfxp,ssxp,swxp,xsize(1),xsize(2),xsize(3),1,iibm)
+    call derxx (tf1,uz1,di1,sx,sfxp,ssxp,swxp,xsize(1),xsize(2),xsize(3),1,iibm)
 
     sgsx1 = td1 * nut1 + two * sxx1 * ta1
     sgsy1 = te1 * nut1 + two * sxy1 * ta1
@@ -1046,13 +1046,13 @@ end subroutine wale
     call transpose_x_to_y(uy1, uy2)
     call transpose_x_to_y(uz1, uz2)
 
-    call dery (ta2, nut2, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1)
+    call dery (ta2, nut2, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1,iibm)
 
     !-->for ux
     td2 = zero
     if (istret.ne.0) then
-       call deryy (td2, ux2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1)
-       call dery (te2, ux2, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1)
+       call deryy (td2, ux2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1,iibm)
+       call dery (te2, ux2, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1,iibm)
        do k = 1, ysize(3)
           do j = 1, ysize(2)
              do i = 1, ysize(1)
@@ -1061,14 +1061,14 @@ end subroutine wale
           enddo
        enddo
     else
-       call deryy (td2, ux2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1)
+       call deryy (td2, ux2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1,iibm)
     endif
 
     !-->for uy
     te2 = zero
     if (istret.ne.0) then
-       call deryy (te2, uy2, di2, sy, sfy, ssy, swy, ysize(1), ysize(2), ysize(3), 0)
-       call dery (tf2, uy2, di2, sy, ffy, fsy, fwy, ppy, ysize(1), ysize(2), ysize(3), 0)
+       call deryy (te2, uy2, di2, sy, sfy, ssy, swy, ysize(1), ysize(2), ysize(3), 0,iibm)
+       call dery (tf2, uy2, di2, sy, ffy, fsy, fwy, ppy, ysize(1), ysize(2), ysize(3), 0,iibm)
        do k = 1, ysize(3)
           do j = 1, ysize(2)
              do i = 1, ysize(1)
@@ -1077,14 +1077,14 @@ end subroutine wale
           enddo
        enddo
     else
-       call deryy (te2, uy2, di2, sy, sfy, ssy, swy, ysize(1), ysize(2), ysize(3), 0)
+       call deryy (te2, uy2, di2, sy, sfy, ssy, swy, ysize(1), ysize(2), ysize(3), 0,iibm)
     endif
 
     !-->for uz
     tf2 = zero
     if (istret.ne.0) then
-       call deryy (tf2, uz2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1)
-       call dery (tj2, uz2, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1)
+       call deryy (tf2, uz2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1,iibm)
+       call dery (tj2, uz2, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1,iibm)
        do k = 1, ysize(3)
           do j = 1, ysize(2)
              do i = 1, ysize(1)
@@ -1093,7 +1093,7 @@ end subroutine wale
           enddo
        enddo
     else
-       call deryy (tf2, uz2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1)
+       call deryy (tf2, uz2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1,iibm)
     endif
 
     sgsx2 = sgsx2 + nut2 * td2 + two * sxy2 * ta2
@@ -1112,11 +1112,11 @@ end subroutine wale
     call transpose_y_to_z(uy2, uy3)
     call transpose_y_to_z(uz2, uz3)
 
-    call derz (ta3, nut3, di3, sz, ffzp, fszp, fwzp, zsize(1), zsize(2), zsize(3), 1)
+    call derz (ta3, nut3, di3, sz, ffzp, fszp, fwzp, zsize(1), zsize(2), zsize(3), 1,iibm)
 
-    call derzz (td3, ux3, di3, sz, sfzp, sszp, swzp, zsize(1), zsize(2), zsize(3), 1)
-    call derzz (te3, uy3, di3, sz, sfzp, sszp, swzp, zsize(1), zsize(2), zsize(3), 1)
-    call derzz (tf3, uz3, di3, sz, sfz, ssz, swz, zsize(1), zsize(2), zsize(3), 0)
+    call derzz (td3, ux3, di3, sz, sfzp, sszp, swzp, zsize(1), zsize(2), zsize(3), 1,iibm)
+    call derzz (te3, uy3, di3, sz, sfzp, sszp, swzp, zsize(1), zsize(2), zsize(3), 1,iibm)
+    call derzz (tf3, uz3, di3, sz, sfz, ssz, swz, zsize(1), zsize(2), zsize(3), 0,iibm)
 
     sgsx3 = sgsx3 + nut3 * td3 + two * sxz3 * ta3
     sgsy3 = sgsy3 + nut3 * te3 + two * syz3 * ta3
@@ -1170,27 +1170,27 @@ end subroutine wale
 
     sgsphi1 = zero; sgsphi2 = zero; sgsphi3 = zero
 
-    call derxS (dkappat1, kappat1, di1, sx, ffxpS, fsxpS, fwxpS, xsize(1), xsize(2), xsize(3), 1)
+    call derxS (dkappat1, kappat1, di1, sx, ffxpS, fsxpS, fwxpS, xsize(1), xsize(2), xsize(3), 1, iibmS)
     call transpose_x_to_y(kappat1, kappat2)
-    call deryS (dkappat2, kappat2, di2, sy, ffypS, fsypS, fwypS, ppy, ysize(1), ysize(2), ysize(3), 1)
+    call deryS (dkappat2, kappat2, di2, sy, ffypS, fsypS, fwypS, ppy, ysize(1), ysize(2), ysize(3), 1, iibmS)
     call transpose_y_to_z(kappat2, kappat3)
-    call derzS (dkappat3, kappat3, di3, sz, ffzpS, fszpS, fwzpS, zsize(1), zsize(2), zsize(3), 1)
+    call derzS (dkappat3, kappat3, di3, sz, ffzpS, fszpS, fwzpS, zsize(1), zsize(2), zsize(3), 1, iibmS)
 
     do is = 1, numscalar
 
-       call derxS (tb1, phi1(:, :, :, is), di1, sx, ffxpS, fsxpS, fwxpS, xsize(1), xsize(2), xsize(3), 1)
+       call derxS (tb1, phi1(:, :, :, is), di1, sx, ffxpS, fsxpS, fwxpS, xsize(1), xsize(2), xsize(3), 1, iibmS)
        sgsphi1(:, :, :, is) = tb1 * dkappat1 !d(phi)/dx * d(kappa_t)/dx
 
        call transpose_x_to_y(phi1(:, :, :, is), phi2)
        call transpose_x_to_y(sgsphi1(:, :, :, is),sgsphi2)
 
-       call deryS (tb2, phi2, di2, sy, ffypS, fsypS, fwypS, ppy, ysize(1), ysize(2), ysize(3), 1)
+       call deryS (tb2, phi2, di2, sy, ffypS, fsypS, fwypS, ppy, ysize(1), ysize(2), ysize(3), 1,iibmS)
        sgsphi2 = sgsphi2 + tb2 * dkappat2 !d(phi)/dy * d(kappa_t)/dy
 
        call transpose_y_to_z(phi2, phi3)
        call transpose_y_to_z(sgsphi2, sgsphi3)
 
-       call derzS (tb3, phi3, di3, sz, ffzpS, fszpS, fwzpS, zsize(1), zsize(2), zsize(3), 1)
+       call derzS (tb3, phi3, di3, sz, ffzpS, fszpS, fwzpS, zsize(1), zsize(2), zsize(3), 1,iibmS)
        sgsphi3 = sgsphi3 + tb3 * dkappat3 !d(phi)/dz * d(kappa_t)/dz
 
        call transpose_z_to_y(sgsphi3, sgsphi2)

@@ -80,7 +80,7 @@ subroutine parameter(input_i3d)
   NAMELIST /Statistics/ wrotation,spinup_time, nstat, initstat
   NAMELIST /ScalarParam/ sc, ri, uset, cp, &
        nclxS1, nclxSn, nclyS1, nclySn, nclzS1, nclzSn, &
-       scalar_lbound, scalar_ubound
+       scalar_lbound, scalar_ubound, iibmS
   NAMELIST /LESModel/ jles, smagcst, walecst, maxdsmagcst, iwall
   NAMELIST /WallModel/ smagwalldamp
   NAMELIST /Tripping/ itrip,A_tr,xs_tr_tbl,ys_tr_tbl,ts_tr_tbl,x0_tr_tbl
@@ -281,6 +281,8 @@ subroutine parameter(input_i3d)
         print *,'Jet'
      elseif (itype.eq.itype_tbl) then
         print *,'Turbulent boundary layer'
+     elseif (itype.eq.itype_sandbox) then
+        print *,'Sandbox'
      else
         print *,'Unknown itype: ', itype
         stop
@@ -387,6 +389,20 @@ subroutine parameter(input_i3d)
      if (iibm.gt.1) then
       write(*,"(' Immersed boundary      : ',A17)") "on"
       write(*,"(' iibm                   : ',I17)") iibm
+     if (iscalar.ne.0) then
+       if (iibmS.eq.0) then
+          print *,'Immersed boundary      : off for scalar'
+       elseif (iibmS.eq.1) then
+          print *,'Immersed boundary      : old school for scalar'
+       elseif (iibmS.eq.2) then
+          print *,'Immersed boundary      : on with Lagrangian Poly for scalar'
+       elseif (iibmS.eq.3) then
+          print *,'Immersed boundary      : on with Lagrangian Poly-phi for scalar'
+       else
+          print *,'Error: iibmS must be 0, 1, 2 or 3'
+          stop
+       endif
+     endif
      end if
      if (iibm.eq.1) print *,'Simple immersed boundary method'
      if (iibm.eq.2) then
@@ -574,6 +590,7 @@ subroutine parameter_defaults()
 
   ipost = 0
   iibm=0
+  iibmS=0
   npif = 2
   izap = 1
 

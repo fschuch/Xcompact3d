@@ -810,19 +810,19 @@ real(mytype),dimension(ysize(1),ysize(2),ysize(3)) :: di2
 !(A+nu*dt.B).un
    if ((ncly1.eq.0).and.(nclyn.eq.0)) then
 
-      call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1)
+      call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1,iibm)
 
    elseif ((ncly1.eq.1).and.(nclyn.eq.1)) then
 
       if (npaire==0) then
-         call deryy(td2,ux2,di2,sy,sfy,ssy,swy,ysize(1),ysize(2),ysize(3),0)
+         call deryy(td2,ux2,di2,sy,sfy,ssy,swy,ysize(1),ysize(2),ysize(3),0,iibm)
       else
-         call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1)
+         call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1,iibm)
       endif
 
    elseif ((ncly1.eq.2).and.(nclyn.eq.2)) then
 
-      call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1)
+      call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1,iibm)
 
    endif
 
@@ -945,14 +945,14 @@ subroutine multmatrix9(td2,ta2,ux2)
 
   if (ncly1.eq.0) then
 
-     call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1)
+     call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1,iibm)
 
   elseif (ncly1.eq.1) then
 
 
   elseif (ncly1.eq.2) then
 
-     call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1)
+     call deryy(td2,ux2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1,iibm)
 
   endif
 
@@ -1775,8 +1775,8 @@ subroutine scalarimp(ux1,uy1,uz1,phi1,dphi1,is)
  
   !X PENCILS
   tg1=ux1*phi1
-  call derx (th1,tg1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1) ! npaire=0 pour phi
-  call derxxS (tg1,phi1,di1,sx,sfxS,ssxS,swxS,xsize(1),xsize(2),xsize(3),0) ! npaire=0
+  call derx (th1,tg1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm) ! npaire=0 pour phi
+  call derxxS (tg1,phi1,di1,sx,sfxS,ssxS,swxS,xsize(1),xsize(2),xsize(3),0,iibmS) ! npaire=0
   call transpose_x_to_y(phi1,phi2)
   call transpose_x_to_y(uy1,uy2)
   call transpose_x_to_y(uz1,uz2)
@@ -1784,11 +1784,11 @@ subroutine scalarimp(ux1,uy1,uz1,phi1,dphi1,is)
   
   !Y PENCILS
   tc2=phi2*uy2
-  call dery (tb2,tc2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1) ! npaire=0 pour phi
+  call dery (tb2,tc2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1,iibm) ! npaire=0 pour phi
 
   if (istret.ne.0) then
 
-     call dery (tc2,phi2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0) ! npaire=0
+     call dery (tc2,phi2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0,iibm) ! npaire=0
 
      do k=1,ysize(3)
         do j=1,ysize(2)
@@ -1807,9 +1807,9 @@ subroutine scalarimp(ux1,uy1,uz1,phi1,dphi1,is)
   
   !Z PENCILS
   ta3=uz3*phi3
-  call derz (tb3,ta3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1) ! npaire=0 pour phi
+  call derz (tb3,ta3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1,iibm) ! npaire=0 pour phi
 
-  call derzzS (ta3,phi3,di3,sz,sfzS,sszS,swzS,zsize(1),zsize(2),zsize(3),0) ! npaire=0
+  call derzzS (ta3,phi3,di3,sz,sfzS,sszS,swzS,zsize(1),zsize(2),zsize(3),0,iibmS) ! npaire=0
 
   call transpose_z_to_y(ta3,tc2)
   call transpose_z_to_y(tb3,td2)
