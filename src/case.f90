@@ -213,6 +213,7 @@ contains
   !##################################################################
   subroutine preprocessing(rho1, ux1, uy1, uz1, pp3, phi1, ep1)
 
+    use probes
     use decomp_2d, only : mytype, xsize, ph1
     use visu, only  : write_snapshot
     use stats, only : overall_statistic
@@ -230,6 +231,8 @@ contains
     !call write_snapshot(rho1, ux1, uy1, uz1, pp3, phi1, ep1, itime)
     !call postprocess_case(rho1, ux1, uy1, uz1, pp3, phi1, ep1)
     !call overall_statistic(ux1, uy1, uz1, phi1, pp3, ep1)
+
+    call init_probes()
 
   end subroutine preprocessing
   !##################################################################
@@ -261,6 +264,7 @@ contains
   subroutine postprocess_case(rho,ux,uy,uz,pp,phi,ep)
 
     use forces
+    use probes
     use var, only : nzmsize
     use param, only : npress
 
@@ -312,6 +316,8 @@ contains
 
 
     endif
+
+    if (nprobes.ne.0) call write_probes()
 
     if (iforces.eq.1) then
        call force(ux,uy,ep)

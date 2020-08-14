@@ -59,6 +59,8 @@ subroutine parameter(input_i3d)
 
   use visu, only : filenamedigits, ifilenameformat, ixdmf
 
+ use probes, only : iprobes
+
   implicit none
 
   character(len=80), intent(in) :: input_i3d
@@ -76,7 +78,7 @@ subroutine parameter(input_i3d)
        icpg, icfr
   NAMELIST /NumOptions/ ifirstder, isecondder, itimescheme, nu0nu, cnu, fpi2, ipinter
   NAMELIST /InOutParam/ irestart, icheckpoint, ioutput, nvisu, iprocessing, &
-       filenamedigits, ifilenameformat, ixdmf, itest
+       filenamedigits, ifilenameformat, ixdmf, itest, iprobes
   NAMELIST /Statistics/ wrotation,spinup_time, nstat, initstat
   NAMELIST /ScalarParam/ sc, ri, uset, cp, &
        nclxS1, nclxSn, nclyS1, nclySn, nclzS1, nclzSn, &

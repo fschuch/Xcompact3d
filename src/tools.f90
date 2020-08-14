@@ -1687,3 +1687,168 @@ SUBROUTINE calc_mweight(mweight, phi, xlen, ylen, zlen)
 ENDSUBROUTINE calc_mweight
 !##################################################################
 !##################################################################
+module probes
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !!
+  !!      Module: probes
+  !!      AUTHOR: Felipe N. Schuch <felipe.schuch@edu.pucrs.br>
+  !! DESCRIPTION: Writes ux, uy, uz and phi to a csv file for every timestep
+  !!
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  use decomp_2d, only : nrank, xsize, xstart, xend
+  use variables, only : numscalar
+
+  implicit none
+
+  integer, save :: FS
+  integer, save :: iprobes = 0, nprobes = 0
+  integer, save, allocatable, dimension(:) :: rankprobes
+  integer, save, allocatable, dimension(:) :: nxprobes, nyprobes, nzprobes
+  character(len=200), save :: fileformat, filename
+  character(len=1),parameter :: NL=char(10) !new line character
+  logical, save :: init_flag = .True.
+
+  private ! All functions/subroutines private by default
+  public :: init_probes, write_probes, nprobes, iprobes
+
+contains
+
+  subroutine init_probes()
+
+    implicit none
+
+    logical :: dir_exists
+    character(len=100) :: buffer
+    integer :: ios, i, j, k, is
+
+    ios = 0; nprobes = 0
+    !
+    if (iprobes .eq. 0) return
+    !
+    inquire(file="data/probes", exist=dir_exists)
+    if (.not.dir_exists) then
+       call system("mkdir data/probes 2> /dev/null")
+    end if
+    !
+    filename = './data/probes_pos.csv'
+    !
+    ! Finding total number of lines
+    !
+    open(10,file=trim(filename),status='old',form='formatted')
+    do while (ios == 0)
+      read(10, '(A)', iostat=ios) buffer
+      if (ios == 0) nprobes = nprobes + 1
+    enddo
+    close(10)
+    nprobes = nprobes - 1 !remove header
+    !
+    if (nprobes .eq. 0) return
+    !
+    if (nrank.eq.0) write(*,"(' nprobes            : ',I15)") nprobes
+
+    allocate(nxprobes(nprobes), nyprobes(nprobes), nzprobes(nprobes), rankprobes(nprobes))
+    nxprobes=0; nyprobes=0; nzprobes=0; rankprobes=0
+
+    open(10,file=trim(filename),status='old',form='formatted')
+    read(10, '(A)', iostat=ios) buffer !skip header
+
+    do i=1, nprobes
+      read (10,*) nxprobes(i), nyprobes(i), nzprobes(i)
+      !probes come from python, so we should add one
+      nxprobes(i) = nxprobes(i) + 1
+      nyprobes(i) = nyprobes(i) + 1
+      nzprobes(i) = nzprobes(i) + 1
+      ! Finding if probe is inside X-pencil
+      if       (xstart(1) .le. nxprobes(i) .and. nxprobes(i) .le. xend(1)) then
+        if     (xstart(2) .le. nyprobes(i) .and. nyprobes(i) .le. xend(2)) then
+          if   (xstart(3) .le. nzprobes(i) .and. nzprobes(i) .le. xend(3)) then
+            rankprobes(i) = 1
+            !
+            write(filename,"('./data/probes/',I4.4,'.csv')") i
+            ! Writing CSV header
+            open(67,file=trim(filename),&
+            status='unknown',form='formatted',&
+            access='direct',recl=27)
+            k = 1
+            write(67,'(26A,A)',rec=k) '                         t', ','
+            k = k + 1
+            write(67,'(26A,A)',rec=k) '                        ux', ','
+            k = k + 1
+            write(67,'(26A,A)',rec=k) '                        uy', ','
+            k = k + 1
+            if (numscalar.eq.0) then
+              write(67,'(26A,A)',rec=k) '                        uz', NL
+            else
+              write(67,'(26A,A)',rec=k) '                        uz', ','
+              k = k + 1
+              do is=1,numscalar
+                if (is.eq.numscalar) then
+                  write(67,'(A25,I1.1,A)',rec=k) '                      phi', is, NL
+                else
+                  write(67,'(A25,I1.1,A)',rec=k) '                      phi', is, ','
+                endif
+                k = k + 1
+              enddo
+            endif
+            close(67)
+            !
+          endif
+        endif
+      endif
+    enddo
+    close(10)
+    return
+  end subroutine init_probes
+
+  subroutine write_probes()
+
+    use var, only : ux1, uy1, uz1, phi1, t !global indices
+    use param, only : itime
+
+    integer :: i, code, io
+
+    if (init_flag) then
+      FS = 1+3+numscalar !Number of columns
+      write(fileformat, '( "(",I4,"(E26.16,:,"",""),E26.16,A)" )' ) FS-1
+      FS = FS*27  !Line width
+      do i=1, nprobes
+        if (rankprobes(i) .eq. 1) then
+          io = 123456+i
+          write(filename,"('./data/probes/',I4.4,'.csv')") i
+          open(io,file=trim(filename),status='unknown',&
+          form='formatted',access='direct',recl=FS)
+        endif
+      enddo
+      init_flag = .False.
+    endif
+
+    if (numscalar.eq.0) then
+      do i=1, nprobes
+        if (rankprobes(i) .eq. 1) then
+          io = 123456+i
+          write(io,fileformat,rec=itime+2) t,&                        !1
+                ux1(nxprobes(i),nyprobes(i),nzprobes(i)),&            !2
+                uy1(nxprobes(i),nyprobes(i),nzprobes(i)),&            !3
+                uz1(nxprobes(i),nyprobes(i),nzprobes(i)),NL           !4
+        endif
+      enddo
+    else
+      do i=1, nprobes
+        if (rankprobes(i) .eq. 1) then
+          io = 123456+i
+          write(io,fileformat,rec=itime+2) t,&                        !1
+                ux1(nxprobes(i),nyprobes(i),nzprobes(i)),&            !2
+                uy1(nxprobes(i),nyprobes(i),nzprobes(i)),&            !3
+                uz1(nxprobes(i),nyprobes(i),nzprobes(i)),&            !4
+                phi1(nxprobes(i),nyprobes(i),nzprobes(i),:),NL        !nphi
+        endif
+      enddo
+    endif
+    return
+  end subroutine write_probes
+
+end module probes
+!##################################################################
+!##################################################################

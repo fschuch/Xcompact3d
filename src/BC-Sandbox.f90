@@ -121,7 +121,7 @@ contains
     real(mytype)               :: remp
     integer                    :: i,j,k,pos
     !
-    character(len=1200) :: filename
+    character(len=120) :: filename
 
     if     (nx.eq.nxraf) then
       if (nrank.eq.0) print *,'=======================Loading epsi_x======================'
