@@ -98,7 +98,7 @@ contains
     if (nrank==0) then
       if (filenamedigits .eq. 1) then
         print *,'==========================================================='
-        print *,'Deprecisation warning:'
+        print *,'Deprecation warning:'
         print *,'    The classic enumeration system for output may be removed'
         print *,'    in a further release'
         print *,'==========================================================='
