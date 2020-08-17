@@ -46,7 +46,7 @@
 !!!              developers, it works as a rapid prototyping tool.
 !!!
 !!!             Try it together with the Xcompact3d_toolbox:
-!!!             https://github.com/fschuch/Xcompact3d-toolbox
+!!!             https://github.com/fschuch/Xcompact3d_toolbox
 !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -105,49 +105,35 @@ module sandbox
 
 contains
 
-  subroutine geomcomplex_sandbox(epsi,nx,nxi,nxf,ny,nyi,nyf,nz,nzi,nzf,dx,yp,dz,remp)
+  subroutine geomcomplex_sandbox(epsi, nxi, nxf, ny, nyi, nyf, nzi, nzf, yp, remp)
 
-    use decomp_2d, only : mytype
+    use decomp_2d, only : mytype, xstart, xend
+    use decomp_2d_io, only : decomp_2d_read_one
     use param, only : one, two
+    use variables, only : nx, nz
     use complex_geometry, only : nxraf,nyraf,nzraf
     use ibm
+    use MPI
 
     implicit none
 
-    integer                    :: nx,nxi,nxf,ny,nyi,nyf,nz,nzi,nzf
+    integer                    :: nxi,nxf,ny,nyi,nyf,nzi,nzf
     real(mytype),dimension(nxi:nxf,nyi:nyf,nzi:nzf) :: epsi
     real(mytype),dimension(ny) :: yp
     real(mytype)               :: dx,dz
     real(mytype)               :: remp
-    integer                    :: i,j,k,pos
+    integer                    :: code, ierror
     !
-    character(len=120) :: filename
-
-    if     (nx.eq.nxraf) then
-      if (nrank.eq.0) print *,'=======================Loading epsi_x======================'
-      filename = './data/ibmx.bin'
-    elseif (ny.eq.nyraf) then
-      if (nrank.eq.0) print *,'=======================Loading epsi_y======================'
-      filename = './data/ibmy.bin'
-    elseif (nz.eq.nzraf) then
-      if (nrank.eq.0) print *,'=======================Loading epsi_z======================'
-      filename = './data/ibmz.bin'
+    if (nxi.eq.1.and.nxf.eq.nx.and.&
+        nyi.eq.xstart(2).and.nyf.eq.xend(2).and.&
+        nzi.eq.xstart(3).and.nzf.eq.xend(3)) then
+        !
+        call decomp_2d_read_one(1,epsi,'./data/geometry/epsilon.bin')
+        !
     else
-      if (nrank.eq.0) print *,'=======================Loading epsi  ======================'
-      filename = './data/ibm.bin'
+      print *,'Invalid parameters at geomcomplex_sandbox'
+      call MPI_ABORT(MPI_COMM_WORLD,code,ierror); stop
     endif
-    !
-    OPEN(filenum,FILE=filename,FORM='UNFORMATTED',ACCESS='DIRECT', RECL=filerecl, STATUS='OLD')
-    !
-    do k=nzi,nzf
-      do j=nyi,nyf
-        do i=nxi,nxf
-          pos = (k-1) * nx * ny + (j-1) * nx + i
-          read(filenum,REC=pos) epsi(i,j,k)
-        end do
-      end do
-    end do
-    CLOSE(filenum)
     !
     return
   end subroutine geomcomplex_sandbox
@@ -645,7 +631,7 @@ contains
     filename = './data/xz_planes/'//trim(name)//'-'//trim(num)//'.bin'
     call decomp_2d_write_plane(2,tmp2,2,1,filename)
     !
-    if (nrank.eq.0 .and. ixdmf.ne.0) then
+    if (nrank.eq.0 .and. ixdmf) then
       write(filenum+2,*)'        <Attribute Name="'//trim(name)//'" Center="Node">'
       write(filenum+2,*)'           <DataItem Format="Binary"'
       write(filenum+2,*)'            DataType="Float" Precision="'//CHAR(48+prec)//'" Endian="little" Seek="0"'
@@ -659,7 +645,7 @@ contains
     filename = './data/xy_planes/'//trim(name)//'-'//trim(num)//'.bin'
     call decomp_2d_write_plane(3,tmp3,3,1,filename)
     !
-    if (nrank.eq.0 .and. ixdmf.ne.0) then
+    if (nrank.eq.0 .and. ixdmf) then
       write(filenum+1,*)'        <Attribute Name="'//trim(name)//'" Center="Node">'
       write(filenum+1,*)'           <DataItem Format="Binary"'
       write(filenum+1,*)'            DataType="Float" Precision="'//CHAR(48+prec)//'" Endian="little" Seek="0"'
@@ -672,7 +658,7 @@ contains
     filename = './data/xy_planes/'//trim(name)//'c-'//trim(num)//'.bin'
     call decomp_2d_write_plane(3,u3,3,nz/2,filename)
     !
-    if (nrank.eq.0 .and. ixdmf.ne.0) then
+    if (nrank.eq.0 .and. ixdmf) then
       write(filenum+1,*)'        <Attribute Name="'//trim(name)//'c'//'" Center="Node">'
       write(filenum+1,*)'           <DataItem Format="Binary"'
       write(filenum+1,*)'            DataType="Float" Precision="'//CHAR(48+prec)//'" Endian="little" Seek="0"'
@@ -685,7 +671,7 @@ contains
     filename = './data/xz_planes/'//trim(name)//'b-'//trim(num)//'.bin'
     call decomp_2d_write_plane(2,u2,2,1,filename)
     !
-    if (nrank.eq.0 .and. ixdmf.ne.0) then
+    if (nrank.eq.0 .and. ixdmf) then
       write(filenum+2,*)'        <Attribute Name="'//trim(name)//'b'//'" Center="Node">'
       write(filenum+2,*)'           <DataItem Format="Binary"'
       write(filenum+2,*)'            DataType="Float" Precision="'//CHAR(48+prec)//'" Endian="little" Seek="0"'
@@ -698,7 +684,7 @@ contains
     filename = './data/xz_planes/'//trim(name)//'t-'//trim(num)//'.bin'
     call decomp_2d_write_plane(2,u2,2,ny,filename)
     !
-    if (nrank.eq.0 .and. ixdmf.ne.0) then
+    if (nrank.eq.0 .and. ixdmf) then
       write(filenum+2,*)'        <Attribute Name="'//trim(name)//'t'//'" Center="Node">'
       write(filenum+2,*)'           <DataItem Format="Binary"'
       write(filenum+2,*)'            DataType="Float" Precision="'//CHAR(48+prec)//'" Endian="little" Seek="0"'
