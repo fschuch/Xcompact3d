@@ -80,11 +80,12 @@ contains
 !############################################################################
   subroutine geomcomplex(epsi, nxi, nxf, ny, nyi, nyf, nzi, nzf, dx, yp, dz, remp)
 
-    USE param, ONLY : itype, itype_cyl, itype_hill, itype_channel
+    USE param, ONLY : itype, itype_cyl, itype_hill, itype_channel, itype_sandbox
     USE decomp_2d, ONLY : mytype
     USE cyl, ONLY : geomcomplex_cyl
     USE hill, ONLY : geomcomplex_hill
     USE channel, ONLY : geomcomplex_channel
+    USE sandbox, ONLY : geomcomplex_sandbox
 
     IMPLICIT NONE
 
@@ -106,6 +107,10 @@ contains
 
        CALL geomcomplex_channel(epsi, nxi, nxf, ny, nyi, nyf, nzi, nzf, yp, remp)
 
+  ELSEIF (itype.EQ.itype_sandbox) THEN
+
+     CALL geomcomplex_sandbox(epsi, nxi, nxf, ny, nyi, nyf, nzi, nzf, yp, remp)
+
     ENDIF
 
   end subroutine geomcomplex
@@ -114,7 +119,7 @@ contains
   subroutine genepsi3d(ep1)
 
     USE variables, only : nx,ny,nz,nxm,nym,nzm,yp
-    USE param, only : xlx,yly,zlz,dx,dy,dz,izap,npif,nclx,ncly,nclz,istret
+    USE param, only : xlx,yly,zlz,dx,dy,dz,izap,npif,nclx,ncly,nclz,istret,itype,itype_sandbox
     USE complex_geometry
     use decomp_2d
 
@@ -127,35 +132,47 @@ contains
     ! 4- You can add your own subroutine for your own object
     ! 7- Please cite the following paper if you are using this file:
     ! Gautier R., Laizet S. & Lamballais E., 2014, A DNS study of
-    ! jet control with microjets using an alterna ng direc on forcing
-    ! strategy, Int. J. of Computa onal Fluid Dynamics, 28, 393--410
+    ! jet control with microjets using an alternating direction forcing
+    ! strategy, Int. J. of Computational Fluid Dynamics, 28, 393--410
     !*****************************************************************!
     !
     logical :: dir_exists
     real(mytype),dimension(xsize(1),xsize(2),xsize(3)) :: ep1
     !
-    if (nrank==0) then
-      print *,'==========================================================='
-      print *,'Generating the geometry!'
-    end if
-    !###################################################################
-    ! Check if planes folder exists
-    !###################################################################
-    if (nrank==0) then
-      inquire(file="geometry", exist=dir_exists)
-      if (.not.dir_exists) then
-        call system("mkdir geometry 2> /dev/null")
+    if (itype.eq.itype_sandbox) then !F.Schuch 2020-08-14T11:44:11-03:00
+      if (nrank==0) then
+        print *,'==========================================================='
+        print *,'Reading the geometry!'
       end if
-    end if
-    !###################################################################
-    call gene_epsi_3D(ep1,nx,ny,nz,dx,dy,dz,xlx,yly,zlz ,&
-         nclx,ncly,nclz,nxraf,nyraf,nzraf   ,&
-         xi,xf,yi,yf,zi,zf,nobjx,nobjy,nobjz,&
-         nobjmax,yp,nraf)
-    call verif_epsi(ep1,npif,izap,nx,ny,nz,nobjmax,&
-         nxipif,nxfpif,nyipif,nyfpif,nzipif,nzfpif)
-    call write_geomcomplex(nx,ny,nz,ep1,nobjx,nobjy,nobjz,xi,xf,yi,yf,zi,zf,&
-         nxipif,nxfpif,nyipif,nyfpif,nzipif,nzfpif,nobjmax,npif)
+      call read_geomcomplex()
+    else
+      if (nrank==0) then
+        print *,'==========================================================='
+        print *,'Generating the geometry!'
+      end if
+      !###################################################################
+      ! Check if planes folder exists
+      !###################################################################
+      if (nrank==0) then
+        inquire(file="data", exist=dir_exists)
+        if (.not.dir_exists) then
+           call system("mkdir data 2> /dev/null")
+        end if
+        inquire(file="data/geometry", exist=dir_exists)
+        if (.not.dir_exists) then
+          call system("mkdir data/geometry 2> /dev/null")
+        end if
+      end if
+      !###################################################################
+      call gene_epsi_3D(ep1,nx,ny,nz,dx,dy,dz,xlx,yly,zlz ,&
+           nclx,ncly,nclz,nxraf,nyraf,nzraf   ,&
+           xi,xf,yi,yf,zi,zf,nobjx,nobjy,nobjz,&
+           nobjmax,yp,nraf)
+      call verif_epsi(ep1,npif,izap,nx,ny,nz,nobjmax,&
+           nxipif,nxfpif,nyipif,nyfpif,nzipif,nzfpif)
+      call write_geomcomplex(nx,ny,nz,ep1,nobjx,nobjy,nobjz,xi,xf,yi,yf,zi,zf,&
+           nxipif,nxfpif,nyipif,nyfpif,nzipif,nzfpif,nobjmax,npif)
+    endif
     !
   end subroutine genepsi3d
 !############################################################################
@@ -265,8 +282,9 @@ contains
           endif
        enddo
     enddo
-    call MPI_REDUCE(nobjxmax,mpi_aux_i,1,MPI_INTEGER,MPI_MAX,0,MPI_COMM_WORLD,code)
+  call MPI_ALLREDUCE(nobjxmax,mpi_aux_i,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,code)
     if (nrank==0) print*,'        nobjxmax=',mpi_aux_i
+  nobjxmax = mpi_aux_i
 
     nobjxraf(:,:)=0
     ibug=0
@@ -321,8 +339,9 @@ contains
           endif
        enddo
     enddo
-    call MPI_REDUCE(nobjymax,mpi_aux_i,1,MPI_INTEGER,MPI_MAX,0,MPI_COMM_WORLD,code)
+  call MPI_ALLREDUCE(nobjymax,mpi_aux_i,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,code)
     if (nrank==0) print*,'        nobjymax=',mpi_aux_i
+  nobjymax = mpi_aux_i
 
     nobjyraf(:,:)=0
     jbug=0
@@ -377,8 +396,9 @@ contains
           endif
        enddo
     enddo
-    call MPI_REDUCE(nobjzmax,mpi_aux_i,1,MPI_INTEGER,MPI_MAX,0,MPI_COMM_WORLD,code)
+  call MPI_ALLREDUCE(nobjzmax,mpi_aux_i,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,code)
     if (nrank==0) print*,'        nobjzmax=',mpi_aux_i
+  nobjzmax = mpi_aux_i
 
     nobjzraf(:,:)=0
     kbug=0
@@ -614,7 +634,14 @@ contains
        enddo
     endif
     if (nrank==0) print*,'    step 10'
-    !
+  !! Testing if nobjmax is valid <F.Schuch 2020-07-07T17:58:08-03:00>
+  !
+  if (max(nobjxmax,nobjymax,nobjzmax).gt.nobjmax) then
+    if (nrank.eq.0) write(*,*) 'Invalid value for nobjmax, try again with:', max(nobjxmax,nobjymax,nobjzmax)
+    stop
+  endif
+  !
+  !!
     return
   end subroutine gene_epsi_3D
 !############################################################################
@@ -887,10 +914,10 @@ contains
     integer                            :: i,j,k,count
     !###################################################################
     if (nrank==0) print *,'Writing geometry'
-    call decomp_2d_write_one(1,ep1,'geometry/epsilon.dat')
+    call decomp_2d_write_one(1,ep1,'data/geometry/epsilon.bin')
     !###################################################################
     !x-pencil
-    open(67,file='geometry/nobjx.dat',form='formatted',access='direct',recl=13)
+    open(67,file='data/geometry/nobjx.dat',form='formatted',access='direct',recl=13)
     do k=xstart(3),xend(3)
        do j=xstart(2),xend(2)
           count = (k-1)*ny+j
@@ -899,7 +926,7 @@ contains
     enddo
     close(67)
     !y-pencil
-    open(67,file='geometry/nobjy.dat',form='formatted',access='direct',recl=13)
+    open(67,file='data/geometry/nobjy.dat',form='formatted',access='direct',recl=13)
     do k=ystart(3),yend(3)
        do i=ystart(1),yend(1)
           count = (k-1)*nx+i
@@ -908,7 +935,7 @@ contains
     enddo
     close(67)
     !z-pencil
-    open(67,file='geometry/nobjz.dat',form='formatted',access='direct',recl=13)
+    open(67,file='data/geometry/nobjz.dat',form='formatted',access='direct',recl=13)
     do j=zstart(2),zend(2)
        do i=zstart(1),zend(1)
           count = (j-1)*nx+i
@@ -918,7 +945,7 @@ contains
     close(67)
     !###################################################################
     !x-pencil
-    open(67,file='geometry/nxifpif.dat',form='formatted',access='direct',recl=25)
+    open(67,file='data/geometry/nxifpif.dat',form='formatted',access='direct',recl=25)
     do k=xstart(3),xend(3)
        do j=xstart(2),xend(2)
           do i=0,nobjmax
@@ -929,7 +956,7 @@ contains
     enddo
     close(67)
     !y-pencil
-    open(67,file='geometry/nyifpif.dat',form='formatted',access='direct',recl=25)
+    open(67,file='data/geometry/nyifpif.dat',form='formatted',access='direct',recl=25)
     do k=ystart(3),yend(3)
        do i=ystart(1),yend(1)
           do j=0,nobjmax
@@ -940,7 +967,7 @@ contains
     enddo
     close(67)
     !z-pencil
-    open(67,file='geometry/nzifpif.dat',form='formatted',access='direct',recl=25)
+    open(67,file='data/geometry/nzifpif.dat',form='formatted',access='direct',recl=25)
     do j=zstart(2),zend(2)
        do i=zstart(1),zend(1)
           do k=0,nobjmax
@@ -952,7 +979,7 @@ contains
     close(67)
     !###################################################################
     !x-pencil
-    open(67,file='geometry/xixf.dat',form='formatted',access='direct',recl=29)
+    open(67,file='data/geometry/xixf.dat',form='formatted',access='direct',recl=29)
     do k=xstart(3),xend(3)
        do j=xstart(2),xend(2)
           do i=1,nobjmax
@@ -963,7 +990,7 @@ contains
     enddo
     close(67)
     !y-pencil
-    open(67,file='geometry/yiyf.dat',form='formatted',access='direct',recl=29)
+    open(67,file='data/geometry/yiyf.dat',form='formatted',access='direct',recl=29)
     do k=ystart(3),yend(3)
        do i=ystart(1),yend(1)
           do j=1,nobjmax
@@ -974,7 +1001,7 @@ contains
     enddo
     close(67)
     !z-pencil
-    open(67,file='geometry/zizf.dat',form='formatted',access='direct',recl=29)
+    open(67,file='data/geometry/zizf.dat',form='formatted',access='direct',recl=29)
     do j=zstart(2),zend(2)
        do i=zstart(1),zend(1)
           do k=1,nobjmax
@@ -989,128 +1016,87 @@ contains
   end subroutine write_geomcomplex
   !############################################################################
   !############################################################################
-  subroutine read_geomcomplex()
+  subroutine read_geomcomplex_aux(dir, nobj, nxipif, nxfpif, xi, xf, n1i, n1f, n1g, n2i, n2f, n2g)
+    !================================================================================
     !
-    USE complex_geometry
-    USE decomp_2d
-    USE MPI
+    !  SUBROUTINE: read_geomcomplex_aux
+    ! DESCRIPTION: see subroutine read_geomcomplex
+    !      AUTHOR: Felipe N. Schuch <felipe.schuch@edu.pucrs.br>
+    !
+    !================================================================================
+    use complex_geometry, only : nobjmax
+    use decomp_2d, only : mytype, nrank
+
+    implicit none
+
+    character(len = 1), intent(in) :: dir
+    integer,dimension(n1i:n1f,n2i:n2f), intent(inout) :: nobj
+    integer,dimension(0:nobjmax,n1i:n1f,n2i:n2f), intent(inout) ::  nxipif,nxfpif
+    real(mytype),dimension(nobjmax,n1i:n1f,n2i:n2f), intent(inout) :: xi,xf
+    integer, intent(in) :: n1i, n1f, n1g, n2i, n2f, n2g
+    integer i1, i2, count, recl
+    real(mytype) :: tmpfloat1, tmpfloat2
+    !
+    character(300) :: line
+    !
+    integer :: FS
+    character(len=160) :: fileformat
+    !
+    recl = (2 + 2 * nobjmax)*26 + (1 + 2 * nobjmax)*8 + 2 ! number of columns
+    !
+    write(fileformat, '(   "(",I4, "E26.16,",I4,"I8.6)"    )' ) (2 + 2 * nobjmax), (1 + 2 * nobjmax)
+    !
+    open(67,file='./data/geometry/obj-'//dir//'.csv',form='formatted',access='direct',recl=recl,status='old')
+    !
+    do i2 = n2i, n2f
+      do i1 = n1i, n1f
+        count = (i2-1)*n1g + i1
+        read(67,fileformat,rec=count) tmpfloat1, tmpfloat2, xi(:,i1,i2), xf(:,i1,i2), nobj(i1,i2), nxipif(1:nobjmax,i1,i2), nxfpif(1:nobjmax,i1,i2)
+      enddo
+    enddo
+    !
+    close(67)
+    !
+    return
+  end subroutine read_geomcomplex_aux
+  !############################################################################
+  !############################################################################
+  subroutine read_geomcomplex()
+    !================================================================================
+    !
+    !  SUBROUTINE: read_geomcomplex
+    ! DESCRIPTION: Reads information about the complex geometry from genepsi.py,
+    !              designed as part of the Xcompact3d_toolbox.
+    !      AUTHOR: Felipe N. Schuch <felipe.schuch@edu.pucrs.br>
+    !
+    !================================================================================
+    use complex_geometry, only : nobjmax
+    use complex_geometry, only : nobjx,nobjy,nobjz
+    use complex_geometry, only : nxipif,nxfpif,nyipif,nyfpif,nzipif,nzfpif
+    use complex_geometry, only : xi,xf,yi,yf,zi,zf
+    use variables, only : nx, ny, nz, yp
+    use var, only : ep1
+    use param, only : npif, zero, one, dx, dy, dz
+    use decomp_2d
+    USE decomp_2d_io
     !
     implicit none
     !
-    integer :: i,j,k
-    integer :: code
+    nxipif = npif
+    nxfpif = npif
+    nyipif = npif
+    nyfpif = npif
+    nzipif = npif
+    nzfpif = npif
     !
-    if(nrank.eq.0)then
-       open(11,file='nobjx.dat'  ,form='formatted', status='old')
-       do k=1,nz
-          do j=1,ny
-             read(11,*)nobjx(j,k)
-          enddo
-       enddo
-       close(11)
-    endif
-    call MPI_BCAST(nobjx,ny*nz,MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    if(nrank.eq.0)then
-       open(12,file='nobjy.dat'  ,form='formatted', status='old')
-       do k=1,nz
-          do i=1,nx
-             read(12,*)nobjy(i,k)
-          enddo
-       enddo
-       close(12)
-    endif
-    call MPI_BCAST(nobjy,nx*nz,MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    if(nrank.eq.0)then
-       open(13,file='nobjz.dat'  ,form='formatted', status='old')
-       do j=1,ny
-          do i=1,nx
-             read(13,*)nobjz(i,j)
-          enddo
-       enddo
-       close(13)
-    endif
-    call MPI_BCAST(nobjz,nx*ny,MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    if(nrank.eq.0)then
-       open(21,file='nxifpif.dat',form='formatted', status='old')
-       do k=1,nz
-          do j=1,ny
-             do i=0,nobjmax
-                read(21,*)nxipif(i,j,k),nxfpif(i,j,k)
-             enddo
-          enddo
-       enddo
-       close(21)
-    endif
-    call MPI_BCAST(nxipif,ny*nz*(nobjmax+1),MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    call MPI_BCAST(nxfpif,ny*nz*(nobjmax+1),MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    if(nrank.eq.0)then
-       open(22,file='nyifpif.dat',form='formatted', status='old')
-       do k=1,nz
-          do i=1,nx
-             do j=0,nobjmax
-                read(22,*)nyipif(j,i,k),nyfpif(j,i,k)
-             enddo
-          enddo
-       enddo
-       close(22)
-    endif
-    call MPI_BCAST(nyipif,nx*nz*(nobjmax+1),MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    call MPI_BCAST(nyfpif,nx*nz*(nobjmax+1),MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    if(nrank.eq.0)then
-       open(23,file='nzifpif.dat',form='formatted', status='old')
-       do j=1,ny
-          do i=1,nx
-             do k=0,nobjmax
-                read(23,*)nzipif(k,i,j),nzfpif(k,i,j)
-             enddo
-          enddo
-       enddo
-       close(23)
-    endif
-    call MPI_BCAST(nzipif,nx*ny*(nobjmax+1),MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    call MPI_BCAST(nzfpif,nx*ny*(nobjmax+1),MPI_INTEGER,0,MPI_COMM_WORLD,code)
-    if(nrank.eq.0)then
-       open(31,file='xixf.dat'   ,form='formatted', status='old')
-       do k=1,nz
-          do j=1,ny
-             do i=1,nobjmax
-                read(31,*)xi(i,j,k),xf(i,j,k)
-             enddo
-          enddo
-       enddo
-       close(31)
-    endif
-    call MPI_BCAST(xi,ny*nz*nobjmax,MPI_REAL,0,MPI_COMM_WORLD,code)
-    call MPI_BCAST(xf,ny*nz*nobjmax,MPI_REAL,0,MPI_COMM_WORLD,code)
-    if(nrank.eq.0)then
-       open(32,file='yiyf.dat'   ,form='formatted', status='old')
-       do k=1,nz
-          do i=1,nx
-             do j=1,nobjmax
-                read(32,*)yi(j,i,k),yf(j,i,k)
-             enddo
-          enddo
-       enddo
-       close(32)
-    endif
-    call MPI_BCAST(yi,nx*nz*nobjmax,MPI_REAL,0,MPI_COMM_WORLD,code)
-    call MPI_BCAST(yf,nx*nz*nobjmax,MPI_REAL,0,MPI_COMM_WORLD,code)
-    if(nrank.eq.0)then
-       open(33,file='zizf.dat'   ,form='formatted', status='old')
-       do j=1,ny
-          do i=1,nx
-             do k=1,nobjmax
-                read(33,*)zi(k,i,j),zf(k,i,j)
-             enddo
-          enddo
-       enddo
-       close(33)
-    endif
-    call MPI_BCAST(zi,nx*ny*nobjmax,MPI_REAL,0,MPI_COMM_WORLD,code)
-    call MPI_BCAST(zf,nx*ny*nobjmax,MPI_REAL,0,MPI_COMM_WORLD,code)
+    call geomcomplex(ep1,xstart(1),xend(1),ny,xstart(2),xend(2),xstart(3),xend(3),dx,yp,dz,one)
+    !
+    call read_geomcomplex_aux('x', nobjx, nxipif, nxfpif, xi, xf, xstart(2), xend(2), ny, xstart(3), xend(3), nz)
+    call read_geomcomplex_aux('y', nobjy, nyipif, nyfpif, yi, yf, ystart(1), yend(1), nx, ystart(3), yend(3), nz)
+    call read_geomcomplex_aux('z', nobjz, nzipif, nzfpif, zi, zf, zstart(1), zend(1), nx, zstart(2), zend(2), ny)
     !
     return
   end subroutine read_geomcomplex
-!############################################################################
-!############################################################################
+  !############################################################################
+  !############################################################################
 end module genepsi
