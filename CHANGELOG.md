@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enumeration, directory structure and filename format for binary outputs by [@fschuch](https://github.com/fschuch), details in [#3](https://github.com/fschuch/Xcompact3d/issues/3).
 - Subroutine `read_geomcomplex` [genepsi.f90](./src/genepsi.f90) was modified ir order to be compatible with the new [xcompact3d_toolbox](https://github.com/fschuch/xcompact3d_toolbox), by [@fschuch](https://github.com/fschuch).
 - README was recovered from previous public repository, by [@fschuch](https://github.com/fschuch).
+- CI changed from Travis to GitHub actions, by [@fschuch](https://github.com/fschuch).
 
 ### Removed
 
