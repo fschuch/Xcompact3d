@@ -18,14 +18,14 @@ This repository contains a major upgrade in the Xcompact3d code. The new version
 
 The main homepage for the original Incompact3d can be found at [incompact3d.com](https://www.incompact3d.com/). You can find a list of the work related to the code.
 
-This is a **Fork** from Xcompact3d´s official repository, for more information see the [Changelog](CHANGELOG.md). Source code, including instructions for running and compiling Xcompact3d, below.
+**This is a Fork from Xcompact3d´s official repository, for more information see the [Changelog](CHANGELOG.md)**.
 
 ## Resources
 
 - **Homepage:** <https://www.incompact3d.com/>
 - **Old Binaries (please try to use the latest Github version instead):** <https://www.incompact3d.com/download.html>
 - **Discussion section (FORUM):** <https://github.com/fschuch/Xcompact3d/issues>
-- `Xcompact3d_toolbox`, a set of tools for pre and postprocessing prepared for the high-order Navier-Stokes solver Xcompact3d: <https://github.com/fschuch/xcompact3d_toolbox>
+- **Xcompact3d-toolbox**, a set of tools for pre and postprocessing prepared for the high-order Navier-Stokes solver Xcompact3d: <https://github.com/fschuch/xcompact3d_toolbox>
 
 New users and developers are welcome to join.
 
