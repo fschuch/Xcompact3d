@@ -956,7 +956,7 @@ contains
 
     use decomp_2d, only : mytype, xsize, ysize, zsize
     use decomp_2d, only : transpose_z_to_y, transpose_y_to_x
-    use param, only : ntime, nrhotime, ibirman_eos, iibm
+    use param, only : ntime, nrhotime, ibirman_eos, iibmS
     use param, only : xnu, prandtl
     use variables
 
@@ -978,27 +978,27 @@ contains
 
     !! XXX All variables up to date - no need to transpose
 
-    call derz (ta3, rho3, di3, sz, ffzp, fszp, fwzp, zsize(1), zsize(2), zsize(3), 1,iibm)
+    call derzS (ta3, rho3, di3, sz, ffzpS, fszpS, fwzpS, zsize(1), zsize(2), zsize(3), 1,iibmS)
     ta3(:,:,:) = uz3(:,:,:) * ta3(:,:,:) + rho3(:,:,:) * divu3(:,:,:)
 
     call transpose_z_to_y(ta3, tb2)
-    call dery (ta2, rho2, di2, sy, ffyp, fsyp, fwyp, ppy, ysize(1), ysize(2), ysize(3), 1,iibm)
+    call deryS (ta2, rho2, di2, sy, ffypS, fsypS, fwypS, ppy, ysize(1), ysize(2), ysize(3), 1,iibmS)
     ta2(:,:,:) = uy2(:,:,:) * ta2(:,:,:) + tb2(:,:,:)
 
     call transpose_y_to_x(ta2, ta1)
-    call derx (drho1(:,:,:,1), rho1(:,:,:,1), &
-         di1, sx, ffxp, fsxp, fwxp, xsize(1), xsize(2), xsize(3), 1,iibm)
+    call derxS (drho1(:,:,:,1), rho1(:,:,:,1), &
+         di1, sx, ffxpS, fsxpS, fwxpS, xsize(1), xsize(2), xsize(3), 1,iibmS)
     drho1(:,:,:,1) = -(ux1(:,:,:) * drho1(:,:,:,1) + ta1(:,:,:))
 
     if (ibirman_eos) THEN !! Add a diffusion term
-       call derzz (ta3,rho3,di3,sz,sfzp,sszp,swzp,zsize(1),zsize(2),zsize(3),1,iibm)
+       call derzzS (ta3,rho3,di3,sz,sfzpS,sszpS,swzpS,zsize(1),zsize(2),zsize(3),1,iibmS)
        call transpose_z_to_y(ta3, tb2)
 
-       call deryy (ta2,rho2,di2,sy,sfyp,ssyp,swyp,ysize(1),ysize(2),ysize(3),1,iibm)
+       call deryyS (ta2,rho2,di2,sy,sfypS,ssypS,swypS,ysize(1),ysize(2),ysize(3),1,iibmS)
        ta2(:,:,:) = ta2(:,:,:) + tb2(:,:,:)
        call transpose_y_to_x(ta2, ta1)
 
-       call derxx (tb1,rho1,di1,sx,sfxp,ssxp,swxp,xsize(1),xsize(2),xsize(3),1,iibm)
+       call derxxS (tb1,rho1,di1,sx,sfxpS,ssxpS,swxpS,xsize(1),xsize(2),xsize(3),1,iibmS)
        ta1(:,:,:) = ta1(:,:,:) + tb1(:,:,:)
 
        drho1(:,:,:,1) = drho1(:,:,:,1) + invpe * ta1(:,:,:)

@@ -812,7 +812,7 @@ contains
        !! We need temperature
        CALL calc_temp_eos(ta1, rho1(:,:,:,1), phi1, tb1, xsize(1), xsize(2), xsize(3))
 
-       CALL derxx (tb1, ta1, di1, sx, sfxp, ssxp, swxp, xsize(1), xsize(2), xsize(3), 1, iibm)
+       CALL derxxS (tb1, ta1, di1, sx, sfxpS, ssxpS, swxpS, xsize(1), xsize(2), xsize(3), 1, iibmS)
        IF (imultispecies) THEN
           tb1(:,:,:) = (xnu / prandtl) * tb1(:,:,:) / ta1(:,:,:)
 
@@ -827,7 +827,7 @@ contains
 
           DO is = 1, numscalar
              IF (massfrac(is)) THEN
-                CALL derxx (tc1, phi1(:,:,:,is), di1, sx, sfxp, ssxp, swxp, xsize(1), xsize(2), xsize(3), 1, iibm)
+                CALL derxxS (tc1, phi1(:,:,:,is), di1, sx, sfxpS, ssxpS, swxpS, xsize(1), xsize(2), xsize(3), 1, iibmS)
                 tb1(:,:,:) = tb1(:,:,:) + (xnu / sc(is)) * (td1(:,:,:) / mol_weight(is)) * tc1(:,:,:)
              ENDIF
           ENDDO
@@ -845,7 +845,7 @@ contains
 
        !!------------------------------------------------------------------------------
        !! Y-pencil
-       CALL deryy (tc2, ta2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1,iibm)
+       CALL deryyS (tc2, ta2, di2, sy, sfypS, ssypS, swypS, ysize(1), ysize(2), ysize(3), 1,iibmS)
        IF (imultispecies) THEN
           tc2(:,:,:) = (xnu / prandtl) * tc2(:,:,:) / ta2(:,:,:)
 
@@ -860,7 +860,7 @@ contains
 
           DO is = 1, numscalar
              IF (massfrac(is)) THEN
-                CALL deryy (td2, phi2(:,:,:,is), di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1,iibm)
+                CALL deryyS (td2, phi2(:,:,:,is), di2, sy, sfypS, ssypS, swypS, ysize(1), ysize(2), ysize(3), 1,iibmS)
                 tc2(:,:,:) = tc2(:,:,:) + (xnu / sc(is)) * (te2(:,:,:) / mol_weight(is)) * td2(:,:,:)
              ENDIF
           ENDDO
@@ -879,7 +879,7 @@ contains
 
        !!------------------------------------------------------------------------------
        !! Z-pencil
-       CALL derzz (divu3, ta3, di3, sz, sfzp, sszp, swzp, zsize(1), zsize(2), zsize(3), 1,iibm)
+       CALL derzzS (divu3, ta3, di3, sz, sfzpS, sszpS, swzpS, zsize(1), zsize(2), zsize(3), 1,iibmS)
        IF (imultispecies) THEN
           divu3(:,:,:) = (xnu / prandtl) * divu3(:,:,:) / ta3(:,:,:)
 
@@ -894,7 +894,7 @@ contains
 
           DO is = 1, numscalar
              IF (massfrac(is)) THEN
-                CALL derzz (tc3, phi3(:,:,:,is), di3, sz, sfzp, sszp, swzp, zsize(1), zsize(2), zsize(3), 1,iibm)
+                CALL derzzS (tc3, phi3(:,:,:,is), di3, sz, sfzpS, sszpS, swzpS, zsize(1), zsize(2), zsize(3), 1,iibmS)
                 divu3(:,:,:) = divu3(:,:,:) + (xnu / sc(is)) * (td3(:,:,:) / mol_weight(is)) * tc3(:,:,:)
              ENDIF
           ENDDO
