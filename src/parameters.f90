@@ -370,17 +370,19 @@ subroutine parameter(input_i3d)
      write(*,"(' istret                 : ',I17)") istret
      write(*,"(' beta                   : ',F17.8)") beta
      print *,'==========================================================='
-     write(*,"(' fpi2                   : ',F17.8)") fpi2
+     !write(*,"(' fpi2                   : ',F17.8)") fpi2
      write(*,"(' nu0nu                  : ',F17.8)") nu0nu
      write(*,"(' cnu                    : ',F17.8)") cnu
      print *,'==========================================================='
      if (iscalar.eq.0) write(*,"(' Scalar                 : ',A17)") "off"
      if (iscalar.eq.1) write(*,"(' Scalar                 : ',A17)") "on"
-     write(*,"(' numscalar              : ',I17)") numscalar
      if (iscalar.eq.1) then
+       write(*,"(' numscalar              : ',I17)") numscalar
        do is=1, numscalar
+          write(*,"(' Concentration  cp(',I2,')  : ',F17.8)") is, cp(is)
           write(*,"(' Schmidt number sc(',I2,')  : ',F17.8)") is, sc(is)
           write(*,"(' Richardson n.  ri(',I2,')  : ',F17.8)") is, ri(is)
+          write(*,"(' Settling vel.  us(',I2,')  : ',F17.8)") is, uset(is)
        end do
      endif
      print *,'==========================================================='
