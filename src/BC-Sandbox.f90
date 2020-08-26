@@ -444,21 +444,25 @@ contains
     !Read phi
     if (iscalar .ne. 0) then
       do is = 1, numscalar
+        if (nrank.eq.0) write(*,*) 'reading : ', './data/phi'//char(is+48)//'.bin'
         call decomp_2d_read_one(1, phi1(:,:,:,is), './data/phi'//char(is+48)//'.bin')
       enddo
     endif
 
     !Read velocity field
+    if (nrank.eq.0) write(*,*) 'reading : ', './data/ux.bin'
     call decomp_2d_read_one(1,ux1,'./data/ux.bin')
+    if (nrank.eq.0) write(*,*) 'reading : ', './data/uy.bin'
     call decomp_2d_read_one(1,uy1,'./data/uy.bin')
+    if (nrank.eq.0) write(*,*) 'reading : ', './data/uz.bin'
     call decomp_2d_read_one(1,uz1,'./data/uz.bin')
 
-    !Read integration operator for flor_rate_control
+    !Read integration operator for flow_rate_control
     if (nclx .or. sz_a_i .gt. 1) then
       call alloc_x(vol1_frc)
       vol1_frc = zero
       filename = './data/vol_frc.bin'
-      if (nrank.eq.0) write(*,*) 'reading :', filename
+      if (nrank.eq.0) write(*,*) 'reading : ', filename
       call decomp_2d_read_one(1,vol1_frc,filename)
     endif
 
@@ -469,6 +473,11 @@ contains
       allocate(bxy1_sb(xsize(2),xsize(3)))
       allocate(bxz1_sb(xsize(2),xsize(3)))
       allocate(noise_mod_x1(xsize(2),xsize(3)))
+      !
+      if (nrank.eq.0) write(*,*) 'reading : ', './data/bxx1.bin'
+      if (nrank.eq.0) write(*,*) 'reading : ', './data/bxy1.bin'
+      if (nrank.eq.0) write(*,*) 'reading : ', './data/bxz1.bin'
+      if (nrank.eq.0) write(*,*) 'reading : ', './data/noise_mod_x1.bin'
       !
       OPEN(filenum+1,FILE='./data/bxx1.bin',FORM='UNFORMATTED',ACCESS='DIRECT', RECL=filerecl, STATUS='OLD')
       OPEN(filenum+2,FILE='./data/bxy1.bin',FORM='UNFORMATTED',ACCESS='DIRECT', RECL=filerecl, STATUS='OLD')
@@ -497,7 +506,7 @@ contains
       do is=1, numscalar
         !
         filename = './data/bxphi1'//char(is+48)//'.bin'
-        if (nrank.eq.0) write(*,*) 'reading :', filename
+        if (nrank.eq.0) write(*,*) 'reading : ', filename
         OPEN(filenum,FILE=filename,FORM='UNFORMATTED',ACCESS='DIRECT', RECL=filerecl, STATUS='OLD')
         !
         do k=1,xsize(3)
@@ -519,7 +528,7 @@ contains
         if (uset(is) .ne. zero) cycle !in this case we use deposition BC
         !
         filename = './data/byphi1'//char(is+48)//'.bin'
-        if (nrank.eq.0) write(*,*) 'reading :', filename
+        if (nrank.eq.0) write(*,*) 'reading : ', filename
         OPEN(filenum,FILE=filename,FORM='UNFORMATTED',ACCESS='DIRECT', RECL=filerecl, STATUS='OLD')
         !
         do k=1,xsize(3)
@@ -541,7 +550,7 @@ contains
         if (uset(is) .ne. zero) cycle !in this case we use deposition BC
         !
         filename = './data/byphin'//char(is+48)//'.bin'
-        if (nrank.eq.0) write(*,*) 'reading :', filename
+        if (nrank.eq.0) write(*,*) 'reading : ', filename
         OPEN(filenum,FILE=filename,FORM='UNFORMATTED',ACCESS='DIRECT', RECL=filerecl, STATUS='OLD')
         !
         do k=1,xsize(3)
