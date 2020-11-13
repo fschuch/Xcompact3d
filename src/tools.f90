@@ -254,9 +254,8 @@ contains
     write(filestart,"('./data/restart-',I9.9,'.bin')") ifirst-1
 
     if (iresflg .eq. 1 ) then !Writing restart
-       if (mod(itime, icheckpoint).ne.0) then
-          return
-       endif
+       if (mod(itime, icheckpoint).ne.0) return
+       if (itime.eq.0) return !no need to write the initial condition to the restart file
 
        if (nrank==0) then
           print *,'===========================================================<<<<<'
