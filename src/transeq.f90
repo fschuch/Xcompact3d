@@ -902,6 +902,12 @@ contains
     !! OUTPUTS
     real(mytype),dimension(xsize(1),xsize(2),xsize(3),ntime,numscalar) :: dphi1
 
+    !! According to the deposition boundary condition where y=0
+    !
+    if (xstart(2).eq.1) dphi1(:,1,:,1,is) = zero
+    !
+    !!
+
     call transpose_x_to_y(phi1, phi2)
     call transpose_y_to_z(phi2, phi3)
 
