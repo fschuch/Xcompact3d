@@ -29,12 +29,12 @@ gravy = -1.0
 gravz = 0.0
 
 ! Boundary conditions
-nclx1 = 1 
-nclxn = 1 
-ncly1 = 2 
-nclyn = 1 
-nclz1 = 1 
-nclzn = 1 
+nclx1 = 1
+nclxn = 1
+ncly1 = 2
+nclyn = 1
+nclz1 = 1
+nclzn = 1
 
 ! Flow parameters
 iin = 1               ! Inflow conditions (1: classic, 2: turbinit)
@@ -45,13 +45,13 @@ inflow_noise = 0.0    ! Turbulence intensity (1=100%) !! Inflow condition
 ! Time stepping
 dt = 0.0048           ! Time step
 ifirst = 1            ! First iteration
-ilast = 100000        ! Last iteration
+ilast = 50000        ! Last iteration
 
 ! Enable modelling tools
-ilesmod=0             ! if 0 then DNS
-numscalar=0           ! If iscalar=0 (no scalar), if iscalar=1 (scalar)
+ilesmod=1             ! if 0 then DNS
+numscalar=1           ! If iscalar=0 (no scalar), if iscalar=1 (scalar)
 iibm=0                ! Flag for immersed boundary method
-ilmn = .TRUE.         ! Enable low Mach number
+ilmn = .FALSE.        ! Enable low Mach number
 
 ! Enable io
 ivisu=1               ! Store snapshots
@@ -84,7 +84,7 @@ cnu = 0.44               ! Ratio between hypervisvosity at k_m=2/3pi and k_c= pi
 ! Basic I/O
 irestart = 0          ! Read initial flow field ?
 icheckpoint = 5000    ! Frequency for writing backup file
-ioutput = 1667        ! Frequency for visualization
+ioutput = 250         ! Frequency for visualization
 nvisu = 1             ! Size for visualisation collection
 iprocessing = 20
 
@@ -141,10 +141,9 @@ cp(1) = 1.0
 !=================
 &LESModel
 !=================
-jles=1
-smagcst=0.1
-walecst=0.5 
-iwall=0
+
+jles=4
+
 /End
 
 !=================

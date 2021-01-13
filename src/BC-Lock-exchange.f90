@@ -81,6 +81,7 @@ contains
     USE variables
     USE decomp_2d
     USE MPI
+    use sandbox, only : deposit
 
     implicit none
 
@@ -88,39 +89,16 @@ contains
     real(mytype),dimension(xsize(1),xsize(2),xsize(3),numscalar) :: phi1
     real(mytype),dimension(xsize(1),xsize(2),xsize(3),nrhotime) :: rho1
 
-    if (xstart(2).eq.1) then
+    if (xstart(2).eq.1 .and. ilmn) then
        j = 1
-
-       if (ncly1.eq.2) then !! Set velocity BCs
-          byx1(:,:) = zero
-          byy1(:,:) = zero
-          byz1(:,:) = zero
-
-          do k = 1, xsize(3)
-             do i = 1, xsize(1)
-                rho1(i, j, k, 1) = rho1(i, j + 1, k, 1) !! drho/dy=0
-             enddo
+       do k = 1, xsize(3)
+          do i = 1, xsize(1)
+             rho1(i, j, k, 1) = rho1(i, j + 1, k, 1) !! drho/dy=0
           enddo
-       endif
-
-       if (nclyS1.eq.2) then !! Set scalar BCs
-          do is=1, numscalar
-             do k=1,xsize(3)
-                do i=1,xsize(1)
-                   !phi2(i,yend(2),k)= phi2(i,yend(2)-1,k) / (1.+uset(is)*dy*sc(is)/xnu) !Robin on top BC
-
-                   if ((uset(is).ne.zero).and.&
-                        (phi1(i,j+1,k,is).gt.phi1(i,j,k,is))) then
-                      phi1(i,j,k,is) = phi1(i,j,k,is) - &
-                           ((uset(is)*gdt(itr))*gravy/dy)*(phi1(i,j+1,k,is)-phi1(i,j,k,is)) !Deposit on bottom BC
-                   else
-                      phi1(i,j,k,is) = phi1(i,j+1,k,is)! dc/dn=0
-                   endif
-                enddo
-             enddo
-          enddo
-       endif
+       enddo
     endif
+
+    if (iscalar .eq. 1) call deposit(phi1)
 
     return
   end subroutine boundary_conditions_lockexch
@@ -141,7 +119,7 @@ contains
     real(mytype),dimension(xsize(1),xsize(2),xsize(3)) :: ux1,uy1,uz1,ep1
     real(mytype),dimension(xsize(1),xsize(2),xsize(3),numscalar) :: phi1
 
-    real(mytype) :: um,x,y,ek,ep,ekg,epg
+    real(mytype) :: um,x,y
     integer :: k,j,i,ii,is,it,code
 
     do k=1,xsize(3)
@@ -151,8 +129,6 @@ contains
              do is=1,numscalar
                 phi1(i,j,k,is)=half * (one - tanh((sc(is) / xnu)**(half) * x)) * cp(is)
              enddo
-             rho1(i,j,k,1) = half * (one - tanh((prandtl / xnu)**half * x)) &
-                  * (dens1 - dens2) + dens2
           enddo
        enddo
     enddo
@@ -166,107 +142,59 @@ contains
                    phi1(i,j,k,is) = zero
                 endif
              enddo
-
-             if (rho1(i,j,k,1).gt.max(dens1, dens2)) then
-                rho1(i,j,k,1) = max(dens1, dens2)
-             elseif (rho1(i,j,k,1).lt.min(dens1, dens2)) then
-                rho1(i,j,k,1) = min(dens1, dens2)
-             endif
           enddo
        enddo
     enddo
 
-    call set_fluid_properties_lockexch(rho1, mu1)
+    if (ilmn) then
+      call set_fluid_properties_lockexch(rho1, mu1)
+      do k=1,xsize(3)
+         do j=1,xsize(2)
+            do i=1,xsize(1)
+               x=real(i+xstart(1)-1-1,mytype)*dx-pfront
+               rho1(i,j,k,1) = half * (one - tanh((prandtl / xnu)**half * x)) &
+                    * (dens1 - dens2) + dens2
+            enddo
+         enddo
+      enddo
+      do k = 1,xsize(3)
+         do j = 1, xsize(2)
+            do i = 1, xsize(1)
+               if (rho1(i,j,k,1).gt.max(dens1, dens2)) then
+                  rho1(i,j,k,1) = max(dens1, dens2)
+               elseif (rho1(i,j,k,1).lt.min(dens1, dens2)) then
+                  rho1(i,j,k,1) = min(dens1, dens2)
+               endif
+            enddo
+         enddo
+      enddo
+    endif
 
     ux1=zero; uy1=zero; uz1=zero
 
     if (iin.ne.0) then
-       call system_clock(count=code)
-       if (iin.eq.2) code=0
-       call random_seed(size = ii)
-       call random_seed(put = code+63946*nrank*(/ (i - 1, i = 1, ii) /))
+      call system_clock(count=code)
+      if (iin.eq.2) code=0
+      call random_seed(size = ii)
+      call random_seed(put = code+63946*nrank*(/ (i - 1, i = 1, ii) /))
 
-       call random_number(ux1)
-       call random_number(uy1)
-       call random_number(uz1)
+      call random_number(ux1)
+      call random_number(uy1)
+      call random_number(uz1)
 
-       !lock-exchange
-       do k=1,xsize(3)
-          do j=1,xsize(2)
-             do i=1,xsize(1)
-                x=real(i-1,mytype)*dx-pfront
-                um=exp(-twentyfive*x*x)*init_noise
-                ux1(i,j,k)=um*(two*ux1(i,j,k)-one)
-                uy1(i,j,k)=um*(two*uy1(i,j,k)-one)
-                uz1(i,j,k)=um*(two*uz1(i,j,k)-one)
-             enddo
-          enddo
-       enddo
-
-       ek = zero
-       do k = 1, xsize(3)
-          do j = 1, xsize(2)
-             do i = 1, xsize(1)
-                ek = ek + half * rho1(i, j, k, 1) &
-                     * (ux1(i, j, k)**2 + uy1(i, j, k)**2 + uz1(i, j, k)**2)
-             enddo
-          enddo
-       enddo
-       ep = zero
-       do is = 1, numscalar
-          do k = 1, xsize(3)
-             y = (j + xstart(2) - 2) * dy
-             do j = 1, xsize(2)
-                do i = 1, xsize(1)
-                   ep = ep - phi1(i, j, k, is) * ri(is) * (gravy * y)
-                enddo
-             enddo
-          enddo
-       enddo
-
-       if (ilmn.and.((Fr**2).gt.zero)) then
-          do k = 1, xsize(3)
-             do j = 1, xsize(2)
-                y = (j + xstart(2) - 2) * dy
-                do i = 1, xsize(1)
-                   ep = ep - (rho1(i, j, k, 1) - min(dens1, dens2)) * (gravy * y) / Fr**2
-                enddo
-             enddo
-          enddo
-       endif
-
-       call MPI_ALLREDUCE(ek,ekg,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,code)
-       call MPI_ALLREDUCE(ep,epg,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,code)
-
-       if ((epg.ne.zero).and.(ekg.ne.zero)) then
-          um = ekg / epg
-          um = init_noise / um
-          um = sqrt(um)
-
-          ux1(:,:,:) = um * ux1(:,:,:)
-          uy1(:,:,:) = um * uy1(:,:,:)
-          uz1(:,:,:) = um * uz1(:,:,:)
-
-          ek = zero
-          do k = 1, xsize(3)
-             do j = 1, xsize(2)
-                do i = 1, xsize(1)
-                   ek = ek + half * rho1(i, j, k, 1) &
-                        * (ux1(i, j, k)**2 + uy1(i, j, k)**2 + uz1(i, j, k)**2)
-                enddo
-             enddo
-          enddo
-          call MPI_ALLREDUCE(ek,ekg,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,code)
-
-          if (nrank.eq.0) then
-             print *, "Ek / Ep: ", ekg / epg, ekg, epg
-          endif
-       endif
+      !lock-exchange
+      do k=1,xsize(3)
+         do j=1,xsize(2)
+            do i=1,xsize(1)
+               x=real(i-1,mytype)*dx-pfront
+               um=exp(-twentyfive*x*x)*init_noise
+               ux1(i,j,k)=um*(two*ux1(i,j,k)-one)
+               uy1(i,j,k)=um*(two*uy1(i,j,k)-one)
+               uz1(i,j,k)=um*(two*uz1(i,j,k)-one)
+            enddo
+         enddo
+      enddo
     endif
-
-#ifdef DEBG
-    if (nrank .eq. 0) print *,'# init end ok'
-#endif
 
     return
   end subroutine init_lockexch
@@ -478,25 +406,49 @@ contains
     A(2,3,:,:,:)=th1(:,:,:)
     A(3,3,:,:,:)=ti1(:,:,:)
 
-    do k=1,xsize(3)
-       do j=1,xsize(2)
-          do i=1,xsize(1)
-             do m=1,3
-                do l=1,3
-                   diss1(i,j,k) = diss1(i,j,k) &
-                        + (two * xnu * mu1(i, j, k)) &
-                        * (half * (A(l,m,i,j,k) + A(m,l,i,j,k)))**2
-                enddo
-             enddo
-          enddo
-       enddo
-    enddo
+    if (ilmn) then
 
-    do ijk=1,xsize(1)*xsize(2)*xsize(3)
-       xvol=real(vol1(ijk,1,1),8)
-       ek = ek + half * xvol * rho1(ijk,1,1,1) * (ux1(ijk,1,1)**2+uy1(ijk,1,1)**2+uz1(ijk,1,1)**2)
-       dek = dek + xvol * diss1(ijk,1,1)
-    enddo
+      do k=1,xsize(3)
+         do j=1,xsize(2)
+            do i=1,xsize(1)
+               do m=1,3
+                  do l=1,3
+                     diss1(i,j,k) = diss1(i,j,k) &
+                          + (two * xnu * mu1(i, j, k)) &
+                          * (half * (A(l,m,i,j,k) + A(m,l,i,j,k)))**two
+                  enddo
+               enddo
+            enddo
+         enddo
+      enddo
+
+      do ijk=1,xsize(1)*xsize(2)*xsize(3)
+         xvol=real(vol1(ijk,1,1),8)
+         ek = ek + half * xvol * rho1(ijk,1,1,1) * (ux1(ijk,1,1)**two+uy1(ijk,1,1)**two+uz1(ijk,1,1)**two)
+         dek = dek + xvol * diss1(ijk,1,1)
+      enddo
+
+    else
+
+      do k=1,xsize(3)
+         do j=1,xsize(2)
+            do i=1,xsize(1)
+               do m=1,3
+                  do l=1,3
+                     diss1(i,j,k)=diss1(i,j,k)+two*xnu*half*half*(A(l,m,i,j,k)+A(m,l,i,j,k))**two
+                  enddo
+               enddo
+            enddo
+         enddo
+      enddo
+
+      do ijk=1,xsize(1)*xsize(2)*xsize(3)
+         xvol=real(vol1(ijk,1,1),8)
+         ek = ek + half * xvol * (ux1(ijk,1,1)**two+uy1(ijk,1,1)**two+uz1(ijk,1,1)**two)
+         dek = dek + xvol * diss1(ijk,1,1)
+      enddo
+
+    endif
 
     call transpose_x_to_y(vol1,vol2)
 
@@ -749,6 +701,8 @@ contains
 
     real(mytype), dimension(xsize(1), xsize(2), xsize(3)), intent(in) :: rho1
     real(mytype), dimension(xsize(1), xsize(2), xsize(3)) :: mu1
+
+    if(.not.ilmn) return
 
     mu1(:,:,:) = rho1(:,:,:)
 

@@ -101,7 +101,7 @@ module sandbox
 
   private
   public :: init_sandbox, boundary_conditions_sandbox, postprocess_sandbox, &
-  geomcomplex_sandbox
+  geomcomplex_sandbox, deposit
 
 contains
 
@@ -183,7 +183,7 @@ contains
     if (nclySn .eq. 2 .and. xend(2) .eq. ny) then
       j = xsize(2)
       do is=1, numscalar
-        if (uset(is) .eq. zero) then !For no-flux use nclySn = 1
+        if (uset(is) .eq. zero .and. itype.eq.itype_sandbox) then !For no-flux use nclySn = 1
           do k=1, xsize(3)
             do i=1, xsize(1)
               phi1(i,j,k,is) = byphin(i,k,is)
