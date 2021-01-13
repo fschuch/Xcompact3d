@@ -255,7 +255,7 @@ contains
 
     if (iresflg .eq. 1 ) then !Writing restart
        if (mod(itime, icheckpoint).ne.0) return
-       if (itime.eq.0) return
+       if (itime.eq.0) return !no need to write the initial condition to the restart file
 
        if (nrank==0) then
           print *,'===========================================================<<<<<'
