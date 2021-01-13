@@ -190,7 +190,7 @@ contains
     endif
     !
     io = 67
-    call write_xdmf_header(io, num, './data/xdmf/3d_snapshots', nx, ny, nz)
+    !call write_xdmf_header(io, num, './data/xdmf/3d_snapshots', nx, ny, nz)
     !###################################################################
     !! Write velocity
     !###################################################################
@@ -228,7 +228,7 @@ contains
       enddo
     endif
 
-    call write_xdmf_footer(io)
+    !call write_xdmf_footer(io)
 
     if (.not. ixdmf) then
       !###################################################################
@@ -400,10 +400,89 @@ contains
     ta1(:,:,:) = f1(:,:,:)
     if (clean_ibm.ne.0.and.iibm.ne.0) ta1(:,:,:) = (one - ep1(:,:,:)) * ta1(:,:,:)
     !
-    call fine_to_coarseV(1,ta1,uvisu)
+    !call fine_to_coarseV(1,ta1,uvisu)
     !
-    call decomp_2d_write_one(1,uvisu,'./data/3d_snapshots/'//filename//'-'//trim(num)//'.bin')
+    !call decomp_2d_write_one(1,uvisu,'./data/3d_snapshots/'//filename//'-'//trim(num)//'.bin')
+
+    call write_netcdf(ta1, num, filename)
 
   end subroutine write_field
   !############################################################################
+  subroutine write_netcdf(f1, num, filename)
+
+    use netcdf
+    use MPI
+    use decomp_2d, only : mytype, nrank, nproc, xsize, xstart
+
+    implicit none
+
+    real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3)) :: f1
+    character(len=*), intent(in) :: num, filename
+
+    ! We are writing 3D data.
+    integer, parameter :: NDIMS = 3
+
+    ! When we create netCDF files, variables and dimensions, we get back
+    ! an ID for each one.
+    integer :: ncid, varid, dimids(NDIMS)
+    integer :: x_dimid, y_dimid, z_dimid
+
+    ! These will tell where in the data file this processor should
+    ! write.
+    integer :: start(NDIMS), count(NDIMS)
+
+    ! Loop indexes, and error handling.
+    integer :: i, j, k, stat, ierr
+
+    ! Create the netCDF file. The NF90_NETCDF4 flag causes a
+    ! HDF5/netCDF-4 file to be created. The comm and info parameters
+    ! cause parallel I/O to be enabled. Use either NF90_MPIIO or
+    ! NF90_MPIPOSIX to select between MPI/IO and MPI/POSIX.
+    call check(nf90_create('./data/3d_snapshots/'//filename//'_'//trim(num)//'.nc', &
+        IOR(NF90_HDF5, NF90_MPIIO), ncid, &
+        comm = MPI_COMM_WORLD, info = MPI_INFO_NULL))
+
+    ! Define the dimensions. NetCDF will hand back an ID for
+    ! each. Metadata operations must take place on all processors.
+    call check(nf90_def_dim(ncid, "x", nproc, x_dimid))
+    call check(nf90_def_dim(ncid, "y", nproc, y_dimid))
+    call check(nf90_def_dim(ncid, "z", nproc, z_dimid))
+
+    ! The dimids array is used to pass the IDs of the dimensions of
+    ! the variables. Note that in fortran arrays are stored in
+    ! column-major format.
+    dimids = (/ y_dimid, x_dimid, z_dimid /)
+
+    ! Define the variable. The type of the variable in this case is
+    ! NF90_INT (4-byte integer).
+    call check(nf90_def_var(ncid, filename, NF90_FLOAT, dimids, varid))
+
+    ! End define mode. This tells netCDF we are done defining
+    ! metadata. This operation is collective and all processors will
+    ! write their metadata to disk.
+    call check(nf90_enddef(ncid))
+
+    ! Write the pretend data to the file. Each processor writes one row.
+    start = (/ xstart(1), xstart(2), xstart(3)/)
+    count = (/ xsize(1), xsize(2), xsize(3) /)
+    call check(nf90_put_var(ncid, varid, f1, start = start, &
+         count = count))
+
+    ! Close the file. This frees up any internal netCDF resources
+    ! associated with the file, and flushes any buffers.
+    call check( nf90_close(ncid) )
+
+    return
+
+  contains
+    subroutine check(status)
+      integer, intent ( in) :: status
+
+      if(status /= nf90_noerr) then
+        print *, trim(nf90_strerror(status))
+        stop 2
+      end if
+    end subroutine check
+
+  end subroutine write_netcdf
 end module visu
