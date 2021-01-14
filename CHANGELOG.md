@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 1. Calling `write_snapshot` and `postprocess_case` for `itime=0`, by [@fschuch](https://github.com/fschuch).
+1. [#2](https://github.com/fschuch/Xcompact3d/issues/4) Lock-exchange configuration not works when `ilmn = .False.`, by [@fschuch](https://github.com/fschuch).
 1. [#4](https://github.com/fschuch/Xcompact3d/issues/4) Wrong derivative routine (and Boundary Conditions) for scalar field, by [@fschuch](https://github.com/fschuch).
 1. [#6](https://github.com/fschuch/Xcompact3d/issues/6) Not computing gravitational term, by [@fschuch](https://github.com/fschuch).
 
