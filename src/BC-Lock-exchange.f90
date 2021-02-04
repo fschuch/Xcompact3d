@@ -65,6 +65,7 @@ module lockexch
 
   integer :: FS
   character(len=100) :: fileformat
+  integer, parameter :: filenum = 67
   character(len=1),parameter :: NL=char(10) !new line character
 
   logical, save :: init = .FALSE.
@@ -203,20 +204,27 @@ contains
   subroutine postprocess_lockexch(rho1,ux1,uy1,uz1,phi1,ep1) !By Felipe Schuch
 
     use decomp_2d, only : alloc_x
-
-    use var, only : phi2, rho2
-    use var, only : phi3, rho3
+    use param, only : iscalar
+    use visu, only : filenamedigits, ifilenameformat, &
+        write_xdmf_header, write_field, write_xdmf_footer
+    use var, only : ux2,uy2,uz2,phi2,rho2
+    use var, only : ux3,uy3,uz3,phi3,rho3
     use tools, only : mean_plane_z
+    use sandbox, only : postprocessing_aux, budget
 
     real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3)) :: ux1, uy1, uz1, ep1
     real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3),numscalar) :: phi1
     real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3),nrhotime) :: rho1
 
     real(mytype),dimension(xsize(1),xsize(2),xsize(3)) :: phisum1
+    real(mytype),dimension(xsize(1),xsize(2),xsize(3)) :: diss1
+    real(mytype),dimension(ysize(1),ysize(2),ysize(3)) :: diss2
+    real(mytype),dimension(zsize(1),zsize(2),zsize(3)) :: diss3
     real(mytype),dimension(ysize(1),ysize(3),numscalar) :: dep2
     real(mytype),dimension(zsize(1),zsize(2),numscalar) :: phim3
     real(mytype),dimension(zsize(1),zsize(2)) :: rhom3
     integer :: i,j,k,is
+    character(len=30) :: num
 
     real(mytype) :: mp(numscalar),dms(numscalar),xf(1:2,1:3),xf2d(1:2,1:2)
 
@@ -287,7 +295,7 @@ contains
        endif
     endif
 
-    call budget(rho1,ux1,uy1,uz1,phi1,vol1)
+    call budget(rho1,ux1,uy1,uz1,phi1,vol1, diss1)
     call dep(phi1,dep2)
     call suspended(phi1,vol1,mp)
     call depositrate (dep2,dms)
@@ -302,7 +310,7 @@ contains
        FS = 1+numscalar+numscalar+3+2 !Number of columns
        write(fileformat, '( "(",I4,"(E14.6),A)" )' ) FS
        FS = FS*14+1  !Line width
-       open(67,file='./out/statistics',status='unknown',form='formatted',&
+       open(67,file='./data/statistics.csv',status='unknown',form='formatted',&
             access='direct',recl=FS)
        write(67,fileformat,rec=itime/iprocessing+1) t,& !1
             mp,&                                    !numscalar
@@ -313,241 +321,33 @@ contains
        close(67)
     end if
 
-  end subroutine postprocess_lockexch
-
-  subroutine budget(rho1,ux1,uy1,uz1,phi1,vol1)
-
-    USE decomp_2d
-    USE decomp_2d_io
-    USE MPI
-
-    use variables, only : derx, dery, derys, derz
-    use variables, only : derxx, deryy, derzz
-    use variables, only : derxxs, deryys, derzzs
-
-    use param, only : iibm, iibmS
-
-    use var, only : ffx, ffxp, fsx, fsxp, fwx, fwxp, sfxps, ssxps, swxps, sx, &
-         sfxp, ssxp, swxp
-    use var, only : ffy, ffyp, ffys, fsy, fsyp, fsys, fwy, fwyp, fwys, ppy, sfyps, ssyps, swyps, sy, &
-         sfyp, ssyp, swyp
-    use var, only : ffz, ffzp, fsz, fszp, fwz, fwzp, sfzps, sszps, swzps, sz, &
-         sfzp, sszp, swzp
-
-    use var, only : mu1
-    use var, only : rho2, ux2, uy2, uz2, phi2
-    use var, only : rho3, ux3, uy3, uz3, phi3
-
-    use var, only : ta1,tb1,tc1,td1,te1,tf1,tg1,th1,ti1,di1
-    use var, only : ta2,tb2,tc2,td2,te2,tf2,di2
-    use var, only : ta3,tb3,tc3,di3
-
-    use tools, only : mean_plane_z
-
-    implicit none
-
-    real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3)) :: ux1,uy1,uz1,vol1
-    real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3),numscalar) :: phi1
-    real(mytype),intent(in),dimension(xsize(1),xsize(2),xsize(3),nrhotime) :: rho1
-
-    real(mytype),dimension(xsize(1),xsize(2),xsize(3)) :: diss1, dphixx1
-    real(mytype),dimension(ysize(1),ysize(2),ysize(3)) :: dphiy2, dphixx2, dphiyy2, dphizz2, ddphi2, vol2, temp2
-    real(mytype),dimension(zsize(1),zsize(2),zsize(3)) :: dphizz3, temp3
-
-    real(mytype),dimension(3,3,xsize(1),xsize(2),xsize(3)) :: A
-
-    real(mytype),dimension(xszV(1),xszV(2),xszV(3)) :: uvisu
-
-    real(8) :: ek,ek1,dek,dek1,ep,ep1,dep,dep1,xvol
-    integer :: ijk,i,j,k,l,m,is,code
-    character(len=30) :: filename
-
-    real(mytype) :: y
-
-    ek=zero;ek1=zero;dek=zero;dek1=zero;ep=zero;ep1=zero;dep=zero;dep1=zero;diss1=zero
-
-    !x-derivatives
-    call derx (ta1,ux1,di1,sx,ffx,fsx,fwx,xsize(1),xsize(2),xsize(3),0,iibm)
-    call derx (tb1,uy1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm)
-    call derx (tc1,uz1,di1,sx,ffxp,fsxp,fwxp,xsize(1),xsize(2),xsize(3),1,iibm)
-    !y-derivatives
-    call transpose_x_to_y(ux1,ux2)
-    call transpose_x_to_y(uy1,uy2)
-    call transpose_x_to_y(uz1,uz2)
-    call dery (ta2,ux2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1,iibm)
-    call dery (tb2,uy2,di2,sy,ffy,fsy,fwy,ppy,ysize(1),ysize(2),ysize(3),0,iibm)
-    call dery (tc2,uz2,di2,sy,ffyp,fsyp,fwyp,ppy,ysize(1),ysize(2),ysize(3),1,iibm)
-    !!z-derivatives
-    call transpose_y_to_z(ux2,ux3)
-    call transpose_y_to_z(uy2,uy3)
-    call transpose_y_to_z(uz2,uz3)
-    call derz (ta3,ux3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1,iibm)
-    call derz (tb3,uy3,di3,sz,ffzp,fszp,fwzp,zsize(1),zsize(2),zsize(3),1,iibm)
-    call derz (tc3,uz3,di3,sz,ffz,fsz,fwz,zsize(1),zsize(2),zsize(3),0,iibm)
-    !!all back to x-pencils
-    call transpose_z_to_y(ta3,td2)
-    call transpose_z_to_y(tb3,te2)
-    call transpose_z_to_y(tc3,tf2)
-    call transpose_y_to_x(td2,tg1)
-    call transpose_y_to_x(te2,th1)
-    call transpose_y_to_x(tf2,ti1)
-    call transpose_y_to_x(ta2,td1)
-    call transpose_y_to_x(tb2,te1)
-    call transpose_y_to_x(tc2,tf1)
-
-    A(:,:,:,:,:)=zero
-    A(1,1,:,:,:)=ta1(:,:,:)
-    A(2,1,:,:,:)=tb1(:,:,:)
-    A(3,1,:,:,:)=tc1(:,:,:)
-    A(1,2,:,:,:)=td1(:,:,:)
-    A(2,2,:,:,:)=te1(:,:,:)
-    A(3,2,:,:,:)=tf1(:,:,:)
-    A(1,3,:,:,:)=tg1(:,:,:)
-    A(2,3,:,:,:)=th1(:,:,:)
-    A(3,3,:,:,:)=ti1(:,:,:)
-
-    if (ilmn) then
-
-      do k=1,xsize(3)
-         do j=1,xsize(2)
-            do i=1,xsize(1)
-               do m=1,3
-                  do l=1,3
-                     diss1(i,j,k) = diss1(i,j,k) &
-                          + (two * xnu * mu1(i, j, k)) &
-                          * (half * (A(l,m,i,j,k) + A(m,l,i,j,k)))**two
-                  enddo
-               enddo
-            enddo
-         enddo
-      enddo
-
-      do ijk=1,xsize(1)*xsize(2)*xsize(3)
-         xvol=real(vol1(ijk,1,1),8)
-         ek = ek + half * xvol * rho1(ijk,1,1,1) * (ux1(ijk,1,1)**two+uy1(ijk,1,1)**two+uz1(ijk,1,1)**two)
-         dek = dek + xvol * diss1(ijk,1,1)
-      enddo
-
+    if (filenamedigits .eq. 0) then
+      WRITE(num, ifilenameformat) itime
     else
+      WRITE(num, ifilenameformat) itime/iprocessing
+    endif
 
-      do k=1,xsize(3)
-         do j=1,xsize(2)
-            do i=1,xsize(1)
-               do m=1,3
-                  do l=1,3
-                     diss1(i,j,k)=diss1(i,j,k)+two*xnu*half*half*(A(l,m,i,j,k)+A(m,l,i,j,k))**two
-                  enddo
-               enddo
-            enddo
-         enddo
+    call write_xdmf_header(filenum+1, num, './data/xdmf/xy_planes', nx, ny, 1)
+    call write_xdmf_header(filenum+2, num, './data/xdmf/xz_planes', nx, 1, nz)
+
+
+    call postprocessing_aux(ux1,ux2,ux3,'ux',num)
+    call postprocessing_aux(uy1,uy2,uy3,'uy',num)
+    call postprocessing_aux(uz1,uz2,uz3,'uz',num)
+    call postprocessing_aux(diss1,diss2,diss3,'diss',num)
+
+    if (iscalar.eq.1) then
+      do is=1, numscalar
+        call postprocessing_aux(phi1(:,:,:,is),phi2(:,:,:,is),phi3(:,:,:,is),'phi'//char(is+48),num)
       enddo
-
-      do ijk=1,xsize(1)*xsize(2)*xsize(3)
-         xvol=real(vol1(ijk,1,1),8)
-         ek = ek + half * xvol * (ux1(ijk,1,1)**two+uy1(ijk,1,1)**two+uz1(ijk,1,1)**two)
-         dek = dek + xvol * diss1(ijk,1,1)
-      enddo
-
     endif
 
-    call transpose_x_to_y(vol1,vol2)
+    call write_xdmf_footer(filenum+1)
+    call write_xdmf_footer(filenum+2)
 
-    ! if (ivirt==2) then
-    !    ilag=0
-    ! endif
-    do is=1, numscalar
-       if (ri(is) .eq. zero) cycle
-       call derxxS (dphixx1,phi1(:,:,:,is),di1,sx,sfxpS,ssxpS,swxpS,xsize(1),xsize(2),xsize(3),1,iibmS)
+    return
 
-       call transpose_x_to_y(dphixx1,dphixx2)
-
-       call transpose_x_to_y(phi1(:,:,:,is),phi2(:,:,:,is))
-
-       call deryS (dphiy2,phi2(:,:,:,is),di2,sy,ffyS,fsyS,fwyS,ppy,ysize(1),ysize(2),ysize(3),1,iibmS)
-
-       call deryyS (dphiyy2,phi2(:,:,:,is),di2,sy,sfypS,ssypS,swypS,ysize(1),ysize(2),ysize(3),1,iibmS)
-
-       call transpose_y_to_z(phi2(:,:,:,is),phi3(:,:,:,is))
-
-       call derzzS (dphizz3,phi3(:,:,:,is),di3,sz,sfzpS,sszpS,swzpS,zsize(1),zsize(2),zsize(3),1,iibmS)
-
-       call transpose_z_to_y(dphizz3,dphizz2)
-
-       ddphi2(:,:,:)=dphixx2(:,:,:)+dphiyy2(:,:,:)+dphizz2(:,:,:)
-
-       do k=1,ysize(3)
-          do j=1,ysize(2)
-             y = (j + ystart(2) - 2) * dy
-             do i=1,ysize(1)
-                xvol=real(vol2(i,j,k),8)
-                ep = ep - xvol * ri(is) * phi2(i,j,k,is) * (gravy * y)
-                dep = dep &
-                     - xvol * ri(is) * (ddphi2(i,j,k)*xnu/sc(is) &
-                     - uset(is) * (gravy * dphiy2(i,j,k))) &
-                     * (gravy * y)
-             enddo
-          enddo
-       enddo
-    enddo
-
-    if (ilmn.and.((Fr**2).gt.zero)) then
-       call derxx(ta1, rho1(:,:,:,1), di1, sx, sfxp, ssxp, swxp, xsize(1), xsize(2), xsize(3), 1, iibm)
-       call transpose_x_to_y(ta1, ta2)
-       call transpose_x_to_y(rho1(:,:,:,1), rho2)
-
-       call deryy(tb2, rho2, di2, sy, sfyp, ssyp, swyp, ysize(1), ysize(2), ysize(3), 1, iibm)
-       call transpose_y_to_z(rho2, rho3)
-
-       call derzz(ta3, rho3, di3, sz, sfzp, sszp, swzp, zsize(1), zsize(2), zsize(3), 1, iibmS)
-       call transpose_z_to_y(ta3, tc2)
-
-       do k = 1, ysize(3)
-          do j = 1, ysize(2)
-             y = (j + ystart(2) - 2) * dy
-             do i = 1, ysize(1)
-                xvol = real(vol2(i, j, k), 8)
-                ep = ep - xvol * (one / Fr**2) * rho2(i, j, k) * (gravy * y)
-                dep = dep - xvol * ((xnu / prandtl / (Fr**2)) &
-                     * (ta2(i, j, k) + tb2(i, j, k) + tc2(i, j, k))) &
-                     * (gravy * y)
-             enddo
-          enddo
-       enddo
-    endif
-    ! if (ivirt==2) then
-    !    ilag=1
-    ! endif
-
-    call MPI_REDUCE(ek,ek1,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,code)
-    call MPI_REDUCE(dek,dek1,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,code)
-    call MPI_REDUCE(ep,ep1,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,code)
-    call MPI_REDUCE(dep,dep1,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,code)
-
-    if (nrank .eq. 0) then
-       open(67,file='./out/budget',status='unknown',form='formatted',&
-            access='direct',recl=71) !71=5*14+1
-       write(67,"(5E14.6,A)",rec=itime/iprocessing+1) t,ek1,dek1,ep1,dep1,NL
-       close(67)
-    end if
-
-    if (mod(itime,ioutput).eq.0) then
-       !if (save_diss.eq.1) then
-       uvisu=zero
-       call fine_to_coarseV(1,diss1,uvisu)
-       write(filename,"('./data/diss',I4.4)") itime/ioutput
-       call decomp_2d_write_one(1,uvisu,filename,2)
-       !endif
-
-       !if (save_dissm.eq.1) then
-       call transpose_x_to_y (diss1,temp2)
-       call transpose_y_to_z (temp2,temp3)
-       call mean_plane_z(temp3,zsize(1),zsize(2),zsize(3),temp3(:,:,1))
-       write(filename,"('./data/dissm',I4.4)") itime/ioutput
-       call decomp_2d_write_plane(3,temp3,3,1,filename)
-       !endif
-    endif
-
-  end subroutine budget
+  end subroutine postprocess_lockexch
 
   subroutine dep(phi1,dep2)
 
@@ -579,8 +379,8 @@ contains
           end do
        end do
 
-       write(filename,"('./out/dep',I1.1,I4.4)") is,itime/iprocessing
-       call decomp_2d_write_plane(2,tempdep2(:,:,:,is),2,1,filename)
+       ! write(filename,"('./out/dep',I1.1,I4.4)") is,itime/iprocessing
+       ! call decomp_2d_write_plane(2,tempdep2(:,:,:,is),2,1,filename)
     enddo
 
   end subroutine dep
@@ -709,58 +509,3 @@ contains
   endsubroutine set_fluid_properties_lockexch
 
 end module lockexch
-
-! !*******************************************************************
-! module post_processing
-
-!   USE decomp_2d
-!   USE variables
-!   USE param
-!   USE flow_type
-
-!   implicit none
-!   !
-!   real(mytype), save, allocatable, dimension(:,:,:) :: vol1
-!   real(mytype), save, allocatable, dimension(:,:) :: area2
-!   !
-!   integer :: FS
-!   character(len=100) :: fileformat
-!   character(len=1),parameter :: NL=char(10) !new line character
-!   !
-!   !probes
-!   integer :: nprobes
-!   integer, save, allocatable, dimension(:) :: rankprobes, nxprobes, nyprobes, nzprobes
-
-! contains
-
-!   !############################################################################
-!   !############################################################################
-!   !############################################################################
-!   subroutine write_probes(ux1,uy1,uz1,phi1) !By Felipe Schuch
-
-!     real(mytype),intent(in),dimension(xstart(1):xend(1),xstart(2):xend(2),xstart(3):xend(3)) :: ux1, uy1, uz1
-!     real(mytype),intent(in),dimension(xstart(1):xend(1),xstart(2):xend(2),xstart(3):xend(3),numscalar) :: phi1
-
-!     integer :: i
-!     character(len=30) :: filename
-!     FS = 1+3+numscalar !Number of columns
-!     write(fileformat, '( "(",I4,"(E14.6),A)" )' ) FS
-!     FS = FS*14+1  !Line width
-
-!     do i=1, nprobes
-!        if (rankprobes(i) .eq. 1) then
-!           write(filename,"('./out/probe',I4.4)") i
-!           open(67,file=trim(filename),status='unknown',form='formatted'&
-!                ,access='direct',recl=FS)
-!           write(67,fileformat,rec=itime) t,&                         !1
-!                ux1(nxprobes(i),nyprobes(i),nzprobes(i)),&            !2
-!                uy1(nxprobes(i),nyprobes(i),nzprobes(i)),&            !3
-!                uz1(nxprobes(i),nyprobes(i),nzprobes(i)),&            !4
-!                phi1(nxprobes(i),nyprobes(i),nzprobes(i),:),&         !numscalar
-!                NL                                                    !+1
-!           close(67)
-!        endif
-!     enddo
-
-!   end subroutine write_probes
-! end module post_processing
