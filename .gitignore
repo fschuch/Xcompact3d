@@ -2,6 +2,7 @@
 *.o
 *.mod
 *.xdmf
+*.nc
 *.bin
 *.info
 *.csv
